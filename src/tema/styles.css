@@ -1,0 +1,372 @@
+/* ============================
+   BASE
+============================ */
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--background);
+    color: var(--text);
+    scroll-behavior: smooth;
+}
+
+.text-brand { color: var(--primary-dark) !important; }
+.text-success { color: var(--success) !important; }
+.text-primary { color: var(--primary) !important; }
+
+/* ============================
+   NAVBAR
+============================ */
+.bg-gradient-brand {
+    background: linear-gradient(90deg, var(--primary-dark) 0%, var(--primary) 60%, var(--primary) 100%);
+}
+.navbar .nav-link {
+    font-weight: 500;
+    color: var(--text-light);
+    transition: color .3s;
+}
+.navbar .nav-link:hover { color: var(--text) !important; }
+.navbar-brand-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    vertical-align: middle;
+}
+
+/* ============================
+   SIDEBAR
+============================ */
+.sidebar {
+    background-color: #fff;
+    border-right: 1px solid var(--border);
+    min-height: calc(100vh - 70px);
+}
+.sidebar .list-group-item {
+    border: none;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    transition: transform .2s, background .3s;
+}
+.sidebar .list-group-item:hover {
+    background-color: var(--surface-soft);
+    color: var(--primary-dark);
+    transform: translateX(5px);
+}
+.alert-brand {
+    background-color: var(--surface-soft);
+    border-left: 4px solid var(--primary);
+    color: var(--primary-dark);
+}
+
+.sidebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: transparent;
+    border: none;
+    color: var(--primary-dark);
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 0;
+    cursor: pointer;
+}
+
+.sidebar-toggle i {
+    font-size: 1.1rem;
+}
+
+body.sidebar-collapsed .sidebar {
+    display: block;
+    width: 110px;
+    min-width: 110px;
+    max-width: 110px;
+    flex: 0 0 110px;
+}
+
+body.sidebar-collapsed .sidebar .list-group,
+body.sidebar-collapsed .sidebar .alert {
+    display: none;
+}
+
+body.sidebar-collapsed .sidebar h5 {
+    margin-bottom: 0 !important;
+}
+
+body.sidebar-collapsed .sidebar-toggle {
+    width: 100%;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.72rem;
+    text-align: center;
+}
+
+body.sidebar-collapsed .sidebar-toggle i {
+    margin-right: 0 !important;
+}
+
+body.sidebar-collapsed main {
+    flex: 0 0 calc(100% - 110px);
+    max-width: calc(100% - 110px);
+    width: calc(100% - 110px);
+}
+
+/* ============================
+   TÍTULOS Y TEXTO
+============================ */
+.section-title {
+    font-weight: 700;
+    border-left: 5px solid var(--success);
+    padding-left: 12px;
+    margin-bottom: 20px;
+    color: var(--primary-dark);
+}
+.texto-destacado { font-size: 1.1rem; color: var(--primary); }
+.texto-artista {
+    font-family: 'Playfair Display', serif;
+    color: var(--primary-dark);
+    font-style: italic;
+}
+
+/* ============================
+   CARRUSEL
+============================ */
+.carousel-img {
+    height: 420px;
+    object-fit: cover;
+    background: #ccc;
+    border-radius: 8px;
+}
+@media (max-width: 768px) {
+    .carousel-img { height: 220px; }
+}
+
+/* ============================
+   PROBLEMAS (01-04)
+============================ */
+.problem-box {
+    background: #fff;
+    border-top: 4px solid var(--success);
+    border-radius: 8px;
+    padding: 15px;
+    height: 100%;
+    box-shadow: 0 2px 8px var(--shadow);
+    transition: transform .3s;
+}
+.problem-box:hover { transform: translateY(-5px); }
+.problem-box .num {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--success);
+    display: block;
+}
+.problem-box h6 { color: var(--primary-dark); margin: 8px 0 5px; }
+.problem-box p { font-size: .85rem; margin: 0; color: var(--text-muted); }
+
+/* ============================
+   FLUJO
+============================ */
+.flow-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+.flow-item {
+    background: #fff;
+    border: 2px solid var(--success);
+    border-radius: 10px;
+    padding: 15px 20px;
+    text-align: center;
+    min-width: 150px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.07);
+}
+.flow-item i { font-size: 1.8rem; color: var(--primary-dark); }
+.flow-item h6 { margin: 8px 0 3px; color: var(--primary-dark); font-weight: 700; }
+.flow-item small { color: #666; }
+.flow-arrow { color: var(--success); font-size: 1.5rem; }
+
+/* ============================
+   PERFILES
+============================ */
+.perfil-card {
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 5px 15px rgba(0,0,0,.08);
+}
+.perfil-cliente { background: #eaf7ff; border-left: 6px solid var(--primary); }
+.perfil-vendedor { background: #f3f8ea; border-left: 6px solid var(--success); }
+.perfil-card h4 { color: var(--primary-dark); font-weight: 700; }
+.perfil-card ul { padding-left: 20px; }
+.perfil-card ul li { margin-bottom: 8px; }
+
+/* ============================
+   CARDS
+============================ */
+.card-animada { transition: transform .3s, box-shadow .3s; border: none; }
+.card-animada:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 25px rgba(90,26,90,.15);
+}
+.img-card {
+    height: 200px;
+    object-fit: cover;
+    background: #ddd;
+}
+.card-title { font-weight: 700; }
+
+/* ============================
+   MÓDULOS CLIENTE
+============================ */
+.module-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    border-radius: 10px;
+    padding: 15px;
+    box-shadow: 0 2px 8px var(--shadow);
+    transition: transform .3s;
+    height: 100%;
+}
+.module-box:hover { transform: translateX(5px); }
+.module-box span {
+    background: var(--success);
+    color: var(--text-light);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.module-box h6 { margin: 0; color: var(--primary-dark); }
+.module-box small { color: #666; }
+
+/* ============================
+   PANEL VENDEDOR
+============================ */
+.panel-card {
+    background: #fff;
+    border-top: 4px solid var(--primary-dark);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    height: 100%;
+    box-shadow: 0 2px 8px var(--shadow);
+    transition: transform .3s;
+}
+.panel-card:hover { transform: translateY(-5px); }
+.panel-card i { font-size: 2rem; color: var(--primary-dark); }
+.panel-card h6 { margin: 10px 0 5px; color: var(--primary-dark); font-weight: 700; }
+.panel-card small { color: #666; }
+
+/* ============================
+   INVENTARIO
+============================ */
+.inv-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    background: #fff;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px var(--shadow);
+}
+.inv-icon {
+    width: 55px;
+    height: 55px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-light);
+    flex-shrink: 0;
+}
+.inv-mas { background: var(--success); }
+.inv-igual { background: var(--primary-dark); }
+.inv-menos { background: var(--primary); }
+.inv-texto h6 { margin: 0; color: var(--primary-dark); font-weight: 700; }
+.inv-texto p { margin: 0; color: var(--text-muted); font-size: .9rem; }
+
+/* ============================
+   DECISIONES
+============================ */
+.decision-box {
+    background: #fff;
+    border-radius: 8px;
+    padding: 15px;
+    border-bottom: 3px solid var(--success);
+    height: 100%;
+}
+.decision-box span {
+    font-weight: 700;
+    color: var(--success);
+    font-size: 1.2rem;
+}
+.decision-box h6 { color: var(--primary-dark); margin: 5px 0; }
+.decision-box small { color: #666; }
+
+/* ============================
+   TABLA
+============================ */
+.table-brand {
+    background: var(--primary-dark) !important;
+    color: #fff !important;
+}
+.table-brand th { border-color: var(--primary-dark); }
+
+/* ============================
+   IMPACTO
+============================ */
+.impact-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    height: 100%;
+    box-shadow: 0 2px 8px var(--shadow);
+    border-bottom: 4px solid var(--success);
+    transition: transform .3s;
+}
+.impact-card:hover { transform: translateY(-5px); }
+.impact-card i { font-size: 2rem; color: var(--primary-dark); }
+.impact-card h6 { margin: 10px 0 5px; color: var(--primary-dark); font-weight: 700; }
+.impact-card small { color: #666; }
+
+/* ============================
+   BOTÓN VOLVER ARRIBA
+============================ */
+.btn-brand {
+    background: var(--primary-dark);
+    color: var(--text-light);
+    border: none;
+}
+.btn-brand:hover { background: var(--primary-dark); color: #fff; }
+
+#btnTop {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    display: none;
+    width: 50px;
+    height: 50px;
+    z-index: 1000;
+}
+
+/* ============================
+   RESPONSIVE
+============================ */
+@media (max-width: 768px) {
+    .sidebar {
+        min-height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+    .flow-arrow { transform: rotate(90deg); }
+    .carousel-img { height: 200px; }
+}
