@@ -294,6 +294,26 @@ body.sidebar-collapsed main {
 .inv-texto p { margin: 0; color: var(--text-muted); font-size: .9rem; }
 
 /* ============================
+   FORMULARIO DE REGISTRO
+============================ */
+.registration-form {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px var(--shadow);
+}
+.registration-form .form-group { margin-bottom: 1rem; }
+.registration-form label {
+    display: block;
+    margin-bottom: .375rem;
+}
+.registration-form .form-actions .btn {
+    flex: 1 1 180px;
+    min-height: 44px;
+}
+
+/* ============================
    DECISIONES
 ============================ */
 .decision-box {
