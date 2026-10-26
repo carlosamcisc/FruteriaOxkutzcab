@@ -1,0 +1,15 @@
+:root {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  min-width: 320px;
+  margin: 0;
+  background: #f7faf7;
+}
+
+.brand-header {
+  background: linear-gradient(90deg, #2e7d32, #4caf50);
+}
