@@ -38,49 +38,184 @@ ramas funcionales.
 ## Requisitos
 
 - Node.js 20.19+ o 22.12+.
-- npm.
-- Para emuladores y despliegues: Firebase CLI y acceso a un proyecto Firebase.
+- npm, incluido con Node.js.
+- Firebase CLI para autenticación, emuladores y despliegue.
+- Acceso al proyecto Firebase `fruteria-oxkutzcab`.
 
-## Desarrollo local
+## Comandos rápidos
 
-```sh
+Ejecuta todos los comandos desde la raíz del repositorio:
+
+```powershell
+# Instalar dependencias del proyecto
 npm install
+
+# Iniciar el servidor de desarrollo
 npm run dev
-```
 
-Para configurar las variables locales, copia `.env.example` a `.env.local` y
-completa los valores de configuración web de Firebase. `.env.local` no se debe
-subir al repositorio. La aplicación base no inicializa Firebase hasta que una
-funcionalidad lo solicite.
-
-Comprobaciones disponibles:
-
-```sh
+# Comprobar tipos
 npm run typecheck
+
+# Crear la compilación de producción
 npm run build
+
+# Servir localmente la compilación de producción
 npm run preview
 ```
 
-## Firebase
+Después de ejecutar `npm run dev`, abre la dirección que indique Vite,
+normalmente `http://localhost:5173`.
 
-`firebase.json` configura Hosting, las reglas de Firestore y Storage, y los
-puertos de los emuladores locales. Antes de desplegar, asocia el repositorio al
-proyecto correcto con Firebase CLI y revisa las reglas. Las reglas iniciales
-deniegan todas las operaciones, por lo que no se debe esperar que la aplicación
-lea o guarde datos hasta implementar y probar los permisos de cada funcionalidad.
+## Configuración local de Firebase
+
+La aplicación obtiene la configuración web desde variables `VITE_`. Si aún no
+existe el archivo local, créalo en PowerShell:
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+Completa `.env.local` con los valores de la aplicación web registrada en
+Firebase. El archivo está excluido por `.gitignore` y nunca debe subirse al
+repositorio. No coloques claves privadas, tokens de servicio ni credenciales de
+Firebase Admin en variables `VITE_`.
+
+La configuración local actual apunta al proyecto `fruteria-oxkutzcab`. La
+aplicación base no inicializa Firebase hasta que alguna funcionalidad lo
+solicita.
+
+## Firebase CLI
+
+La vinculación del repositorio se guarda en `.firebaserc`. Para preparar Firebase
+en otro equipo:
+
+```powershell
+# Instalar la CLI una sola vez
+npm install -g firebase-tools
+
+# Iniciar sesión en el navegador
+firebase login
+
+# Vincular o cambiar el proyecto
+firebase use --add
+
+# Confirmar el proyecto activo
+firebase use
+firebase projects:list
+```
+
+El proyecto activo debe ser `fruteria-oxkutzcab`. Antes de desplegar, confirma
+que estás en el repositorio y proyecto correctos.
+
+## Emuladores de Firebase
+
+`firebase.json` configura emuladores para Authentication, Firestore, Storage,
+Hosting y la interfaz de administración local. Para iniciar los servicios:
+
+```powershell
+firebase emulators:start
+```
+
+Para iniciar solo los servicios necesarios:
+
+```powershell
+firebase emulators:start --only auth,firestore,storage
+```
+
+Direcciones configuradas:
+
+| Servicio | Dirección |
+| --- | --- |
+| Authentication | `http://localhost:9099` |
+| Firestore | `http://localhost:8080` |
+| Storage | `http://localhost:9199` |
+| Hosting | `http://localhost:5000` |
+| Firebase Emulator UI | `http://localhost:4000` |
+
+Los emuladores deben usarse antes de probar reglas con datos de desarrollo.
+Actualmente las reglas de Firestore y Storage deniegan todo acceso; esto es
+intencional hasta implementar Authentication y las reglas por rol.
+
+## Despliegue de Firebase
+
+Las reglas e índices se pueden publicar sin desplegar la interfaz:
+
+```powershell
+firebase deploy --only firestore:rules,firestore:indexes
+```
+
+Para compilar y publicar la interfaz en Firebase Hosting:
+
+```powershell
+npm run build
+firebase deploy --only hosting
+```
+
+Para publicar reglas, índices y Hosting en una sola operación:
+
+```powershell
+npm run build
+firebase deploy --only firestore:rules,firestore:indexes,hosting
+```
+
+No despliegues reglas permisivas como `allow read, write: if true`. Las reglas
+deben probarse primero en los emuladores y revisarse junto con cada
+funcionalidad.
+
+## Solución de problemas frecuentes
+
+### `firebase` no se reconoce como comando
+
+Instala Firebase CLI globalmente y abre una nueva terminal:
+
+```powershell
+npm install -g firebase-tools
+firebase --version
+```
+
+### `firebase projects:list` solicita autenticación
+
+Vuelve a iniciar sesión:
+
+```powershell
+firebase login
+firebase projects:list
+```
+
+### `git pull` indica que un archivo sería sobrescrito
+
+Consulta primero el estado:
+
+```powershell
+git status --short --branch
+```
+
+No uses `git reset --hard` ni `git clean -fd` sin revisar antes los archivos.
+Un `.env.local` debe conservarse localmente y no debe versionarse. Si el
+conflicto es un archivo generado por Git que no contiene cambios propios, haz
+una copia, actualiza la rama y verifica el resultado antes de eliminar la copia.
 
 El esquema inicial de las colecciones, los estados y las decisiones de acceso
 está documentado en [docs/firebase-data-model.md](./docs/firebase-data-model.md).
 Firestore no requiere crear tablas por adelantado; los tipos en
 `src/features/database/models.ts` documentan la forma de los documentos. No hay
-un proyecto Firebase asociado todavía, así que el despliegue de reglas e índices
-queda pendiente de configurar el ID del proyecto y validar las reglas en los
-emuladores.
+que crear colecciones vacías manualmente: Firestore las crea al guardar el
+primer documento. El repositorio está vinculado al proyecto
+`fruteria-oxkutzcab`; aun así, las reglas deben validarse antes de habilitar
+datos reales.
 
 ## Flujo de ramas
 
-Las funcionalidades se desarrollan en ramas cortas y se integran mediante Pull
-Request. `master` se reserva para versiones estables. La rama de modelo de
-Firestore depende de la arquitectura React; ambas deben integrarse en orden
-antes de continuar con autenticación, catálogo, inventario, cotizaciones y
+Consulta las ramas y su sincronización antes de trabajar:
+
+```powershell
+git fetch --prune origin
+git branch -vv
+git status --short --branch
+```
+
+Las funcionalidades se desarrollan en ramas cortas creadas desde `develop` y se
+integran mediante Pull Request. `master` se reserva para versiones estables.
+Después de integrar la arquitectura y el modelo de Firestore, las siguientes
+ramas deben abordar autenticación, catálogo, inventario, cotizaciones y
 pedidos.
