@@ -69,10 +69,18 @@ proyecto correcto con Firebase CLI y revisa las reglas. Las reglas iniciales
 deniegan todas las operaciones, por lo que no se debe esperar que la aplicación
 lea o guarde datos hasta implementar y probar los permisos de cada funcionalidad.
 
+El esquema inicial de las colecciones, los estados y las decisiones de acceso
+está documentado en [docs/firebase-data-model.md](./docs/firebase-data-model.md).
+Firestore no requiere crear tablas por adelantado; los tipos en
+`src/features/database/models.ts` documentan la forma de los documentos. No hay
+un proyecto Firebase asociado todavía, así que el despliegue de reglas e índices
+queda pendiente de configurar el ID del proyecto y validar las reglas en los
+emuladores.
+
 ## Flujo de ramas
 
-Las funcionalidades se desarrollan en ramas cortas creadas desde `develop` y
-se integran mediante Pull Request. `master` se reserva para versiones estables.
-La rama actual establece esta arquitectura; las siguientes pueden abordar, en
-orden, autenticación y perfiles, catálogo, inventario, cotizaciones y pedidos,
-y finalmente pruebas y despliegue.
+Las funcionalidades se desarrollan en ramas cortas y se integran mediante Pull
+Request. `master` se reserva para versiones estables. La rama de modelo de
+Firestore depende de la arquitectura React; ambas deben integrarse en orden
+antes de continuar con autenticación, catálogo, inventario, cotizaciones y
+pedidos.
