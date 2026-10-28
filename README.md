@@ -30,10 +30,9 @@ como autorización.
   Firebase.
 - `src/shared/`: componentes y utilidades reutilizables cuando existan.
 
-El HTML y JavaScript originales en `src/home/` y `src/js/` se conservan por
-ahora como prototipo de referencia; la nueva aplicación inicia en `src/main.tsx`.
-La migración de sus pantallas y datos ficticios se hará gradualmente en las
-ramas funcionales.
+La aplicación inicia en `src/main.tsx`. Las funcionalidades se incorporan
+gradualmente en las ramas funcionales; no se conservan prototipos HTML
+duplicados fuera de la aplicación React.
 
 ## Requisitos
 
