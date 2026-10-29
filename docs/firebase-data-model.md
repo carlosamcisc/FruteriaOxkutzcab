@@ -2,7 +2,7 @@
 
 Este documento describe el esquema de la primera versión. Cloud Firestore no
 requiere declarar tablas ni columnas antes de usarlo: los documentos se crean
-al escribirlos. Los tipos de TypeScript en `src/features/database/models.ts`
+al escribirlos. Los tipos de TypeScript en `src/shared/domain/models.ts`
 sirven como contrato de la aplicación; no sustituyen las reglas de seguridad.
 
 ## Colecciones

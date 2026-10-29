@@ -1,7 +1,6 @@
 import {
   createUserWithEmailAndPassword,
   deleteUser,
-  getAuth,
   type UserCredential,
 } from "firebase/auth";
 import {
@@ -10,9 +9,9 @@ import {
   setDoc,
   writeBatch,
 } from "firebase/firestore";
-import { getFirebaseApp } from "./firebase";
-import { getFirestoreDb } from "./firestore";
-import { documentPaths } from "../features/database/paths";
+import { getAuthService } from "../../../services/auth";
+import { getFirestoreDb } from "../../../services/firestore";
+import { documentPaths } from "../../../shared/domain/paths";
 
 export interface CustomerRegistrationData {
   displayName: string;
@@ -25,10 +24,6 @@ export interface SellerRegistrationData extends CustomerRegistrationData {
   businessName: string;
   description: string;
   municipality: string;
-}
-
-function getAuthService() {
-  return getAuth(getFirebaseApp());
 }
 
 async function createAccount(

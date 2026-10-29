@@ -25,12 +25,31 @@ como autorización.
 
 ### Organización prevista
 
-- `src/app/`: arranque y estructura general de la interfaz.
-- `src/features/`: funcionalidades agrupadas por dominio, por ejemplo
-  autenticación, catálogo, inventario, cotizaciones y pedidos.
-- `src/services/`: integraciones externas, incluida la inicialización de
-  Firebase.
-- `src/shared/`: componentes y utilidades reutilizables cuando existan.
+```
+src/
+  app/                  App.tsx (monta AuthProvider) y routes.tsx (mapa de rutas por hash)
+  pages/                páginas completas; solo componen layouts y features
+    publico/            BienvenidaPage
+    autenticacion/      InicioSesion, SeleccionRol, RegistroCliente, RegistroVendedor
+    cliente/ vendedor/  páginas de inicio por rol (pendientes)
+  features/             funcionalidades por dominio
+    auth/
+      context/          AuthProvider: única suscripción al estado de sesión
+      hooks/            useAuth (sesión), useLogin, useRegistration
+      services/         llamadas a Firebase Auth y Firestore del flujo de cuentas
+      utils/            mapAuthError: códigos de Firebase → mensajes
+      components/       RegistrationForm
+    landing/data/       contenido estático de la página de bienvenida
+  shared/
+    components/         AuthLayout, RegistrationPageLayout, BrandLogo, FeedbackAlert
+    domain/             models.ts (tipos de documentos) y paths.ts (rutas de Firestore)
+  services/             inicialización de Firebase (firebase.ts, auth.ts, firestore.ts)
+```
+
+Reglas de dependencia: `pages → features → shared/services`. Una feature no
+importa de `app/` ni de otra página, y `services/` y `shared/` no importan de
+`features/`. Para conocer la sesión actual usa `useAuth()`; no te suscribas a
+`onAuthStateChanged` desde componentes.
 
 La aplicación inicia en `src/main.tsx`. Las funcionalidades se incorporan
 gradualmente en las ramas funcionales; no se conservan prototipos HTML
@@ -82,8 +101,9 @@ repositorio. No coloques claves privadas, tokens de servicio ni credenciales de
 Firebase Admin en variables `VITE_`.
 
 La configuración local actual apunta al proyecto `fruteria-oxkutzcab`. La
-aplicación base no inicializa Firebase hasta que alguna funcionalidad lo
-solicita.
+aplicación inicializa Firebase Authentication al cargar la interfaz para
+restaurar una sesión existente; el resto de servicios se inicializa cuando se
+utiliza su funcionalidad.
 
 ## Firebase CLI
 
@@ -147,6 +167,13 @@ firebase deploy --only firestore:rules --project fruteria-oxkutzcab
 
 También confirma en Firebase Console que Authentication tenga habilitado el
 proveedor **Correo electrónico/contraseña**.
+
+La página de inicio de sesión está disponible en la sección **Ingresar** de la
+interfaz. Usa `signInWithEmailAndPassword` con cuentas reales de Firebase,
+conserva la sesión mediante el estado de Authentication, permite cerrar sesión
+y ofrece recuperación de contraseña por correo. Para probarla, registra una
+cuenta desde la misma aplicación o crea un usuario en Firebase Console y
+confirma que el proveedor de correo y contraseña esté habilitado.
 
 El esquema de Firestore usa nombres de colecciones y campos en español. Si
 existen documentos del esquema anterior en inglés, consulta la sección de
@@ -215,7 +242,7 @@ una copia, actualiza la rama y verifica el resultado antes de eliminar la copia.
 El esquema inicial de las colecciones, los estados y las decisiones de acceso
 está documentado en [docs/firebase-data-model.md](./docs/firebase-data-model.md).
 Firestore no requiere crear tablas por adelantado; los tipos en
-`src/features/database/models.ts` documentan la forma de los documentos. No hay
+`src/shared/domain/models.ts` documentan la forma de los documentos. No hay
 que crear colecciones vacías manualmente: Firestore las crea al guardar el
 primer documento. El repositorio está vinculado al proyecto
 `fruteria-oxkutzcab`; aun así, las reglas deben validarse antes de habilitar

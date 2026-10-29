@@ -1,5 +1,8 @@
 import type { Timestamp } from "firebase/firestore";
 
+/** Tipo de cuenta que se elige al registrarse. */
+export type AccountRole = "customer" | "seller";
+
 export type EstadoSolicitudVendedor = "pendiente" | "aprobada" | "rechazada";
 export type EstadoVendedor = "activo" | "suspendido";
 export type EstadoProducto = "borrador" | "publicado" | "pausado";
