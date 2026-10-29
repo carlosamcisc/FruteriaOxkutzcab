@@ -531,6 +531,169 @@ a {
   scroll-margin-top: 2rem;
 }
 
+.login-section {
+  padding: 1rem 0 6rem;
+  scroll-margin-top: 2rem;
+}
+
+.role-selection {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.role-selection h1 {
+  margin: 0.8rem 0 1rem;
+  color: var(--forest-dark);
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  letter-spacing: -0.05em;
+}
+
+.role-selection-intro {
+  margin: 0 auto 2.5rem;
+  color: var(--ink-muted);
+}
+
+.role-selection-card {
+  display: flex;
+  min-height: 10rem;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 1.1rem;
+  background: #fff;
+  color: var(--forest-dark);
+  text-decoration: none;
+  box-shadow: 0 1rem 2rem rgba(23, 75, 53, 0.06);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.role-selection-card:hover,
+.role-selection-card:focus {
+  border-color: var(--leaf);
+  box-shadow: 0 1rem 2rem rgba(23, 75, 53, 0.12);
+  color: var(--forest-dark);
+  transform: translateY(-0.2rem);
+}
+
+.role-selection-card > i:first-child {
+  color: var(--leaf);
+  font-size: 2rem;
+}
+
+.role-selection-card span {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.role-selection-card small {
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+
+.role-selection-card .arrow-icon {
+  align-self: flex-start;
+  color: var(--leaf);
+  font-size: 1rem;
+}
+
+.role-selection-card-seller {
+  background: var(--forest);
+  color: #fff;
+}
+
+.role-selection-card-seller:hover,
+.role-selection-card-seller:focus {
+  background: var(--forest-dark);
+  color: #fff;
+}
+
+.role-selection-card-seller > i:first-child,
+.role-selection-card-seller small,
+.role-selection-card-seller .arrow-icon {
+  color: var(--lime);
+}
+
+.login-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+  gap: clamp(2rem, 6vw, 6rem);
+  align-items: center;
+}
+
+.login-intro h1,
+.login-intro h2 {
+  max-width: 530px;
+  margin: 0.8rem 0 1.2rem;
+  color: var(--forest-dark);
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  letter-spacing: -0.05em;
+  line-height: 1.08;
+}
+
+.login-intro > p {
+  max-width: 500px;
+  color: var(--ink-muted);
+  line-height: 1.7;
+}
+
+.login-card {
+  max-width: 520px;
+  width: 100%;
+  margin-left: auto;
+}
+
+.forgot-password {
+  display: block;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--forest);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.forgot-password:hover,
+.forgot-password:focus,
+.login-register-link a {
+  color: var(--leaf);
+}
+
+.login-register-link {
+  margin: 1.5rem 0 0;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.login-register-link a {
+  font-weight: 700;
+}
+
+.authenticated-icon {
+  display: grid;
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #eff7df;
+  color: var(--leaf);
+  font-size: 1.8rem;
+}
+
+.authenticated-state h3 {
+  color: var(--forest-dark);
+}
+
+.authenticated-state p {
+  color: var(--ink-muted);
+  line-height: 1.6;
+}
+
 .registration-layout {
   display: grid;
   grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
@@ -672,8 +835,21 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .login-layout {
+    grid-template-columns: 1fr;
+  }
+
   .registration-intro {
     max-width: 650px;
+  }
+
+  .login-intro {
+    max-width: 650px;
+  }
+
+  .login-card {
+    max-width: none;
+    margin-left: 0;
   }
 }
 

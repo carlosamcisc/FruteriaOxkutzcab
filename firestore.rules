@@ -5,7 +5,10 @@ service cloud.firestore {
     match /usuarios/{userId} {
       allow create: if isOwner(userId)
         && request.resource.data.correo == request.auth.token.email;
-      allow read, update: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow update: if isOwner(userId)
+        && request.resource.data.correo == resource.data.correo
+        && request.resource.data.creadoEn == resource.data.creadoEn;
       allow delete: if false;
     }
 
