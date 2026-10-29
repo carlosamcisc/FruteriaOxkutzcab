@@ -64,9 +64,13 @@ consultas reales de la interfaz.
 
 Las reglas actuales de Firestore permiten a una cuenta autenticada crear y
 consultar únicamente su documento `usuarios/{uid}` y su solicitud
-`solicitudesVendedores/{uid}`. Las demás colecciones y Storage deniegan todo
-acceso hasta implementar sus flujos, reglas por rol/propietario y pruebas con
-Firebase Emulator Suite. El formulario de registro usa Authentication con
+`solicitudesVendedores/{uid}`. Para la pantalla de inicio del cliente
+(`#cliente-inicio`), una cuenta autenticada además puede leer `vendedores`,
+los `productos` con `estado == "publicado"` y las `cotizaciones` y `pedidos`
+cuyo `compradorId` es su UID; las consultas deben incluir esos filtros. Ninguna
+de estas colecciones admite escrituras desde el navegador. El resto de las
+colecciones y Storage deniegan todo acceso hasta implementar sus flujos, reglas
+por rol/propietario y pruebas con Firebase Emulator Suite. El formulario de registro usa Authentication con
 correo y contraseña; el vendedor queda en estado `pendiente` y no recibe
 privilegios desde el navegador.
 
