@@ -21,8 +21,8 @@ export function useLogin() {
         String(formData.get("loginCorreo") ?? ""),
         String(formData.get("loginContrasena") ?? ""),
       );
-      setFeedback({ type: "success", message: "Inicio de sesión correcto. Ya puedes continuar." });
       form.reset();
+      window.location.hash = "#cliente-inicio";
     } catch (error) {
       setFeedback({
         type: "error",

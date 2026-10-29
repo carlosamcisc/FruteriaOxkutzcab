@@ -3,6 +3,7 @@ import { InicioSesionPage } from "../pages/autenticacion/InicioSesionPage";
 import { RegistroClientePage } from "../pages/autenticacion/RegistroClientePage";
 import { RegistroVendedorPage } from "../pages/autenticacion/RegistroVendedorPage";
 import { SeleccionRolPage } from "../pages/autenticacion/SeleccionRolPage";
+import { ClienteInicioPage } from "../pages/cliente/ClienteInicioPage";
 import { BienvenidaPage } from "../pages/publico/BienvenidaPage";
 
 /**
@@ -15,6 +16,7 @@ export const routes: Record<string, () => ReactElement> = {
   "#seleccion-rol": () => <SeleccionRolPage />,
   "#registro-cliente": () => <RegistroClientePage />,
   "#registro-vendedor": () => <RegistroVendedorPage />,
+  "#cliente-inicio": () => <ClienteInicioPage />,
 };
 
 export const fallbackRoute = () => <BienvenidaPage />;

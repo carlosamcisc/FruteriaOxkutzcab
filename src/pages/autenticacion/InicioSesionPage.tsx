@@ -42,6 +42,10 @@ export function InicioSesionPage() {
                     Accediste como <strong>{user.email}</strong>.
                   </p>
                   <FeedbackAlert feedback={visibleFeedback} />
+                  <a className="btn btn-primary w-100 mb-2" href="#cliente-inicio">
+                    Ir a mi inicio
+                    <i className="bi bi-arrow-right ms-2" aria-hidden="true" />
+                  </a>
                   <button className="btn btn-outline-success w-100" type="button" onClick={handleLogout}>
                     Cerrar sesión
                   </button>
