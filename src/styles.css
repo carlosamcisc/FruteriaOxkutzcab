@@ -526,6 +526,124 @@ a {
   color: var(--forest);
 }
 
+.registration-section {
+  padding: 1rem 0 7rem;
+  scroll-margin-top: 2rem;
+}
+
+.registration-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: clamp(2rem, 6vw, 6rem);
+  align-items: center;
+}
+
+.registration-intro h2 {
+  max-width: 530px;
+  margin: 0.8rem 0 1.2rem;
+  color: var(--forest-dark);
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  letter-spacing: -0.05em;
+  line-height: 1.08;
+}
+
+.registration-intro > p {
+  max-width: 500px;
+  color: var(--ink-muted);
+  line-height: 1.7;
+}
+
+.registration-benefit {
+  display: flex;
+  gap: 0.85rem;
+  margin-top: 1.5rem;
+}
+
+.registration-benefit > i {
+  color: var(--leaf);
+  font-size: 1.35rem;
+}
+
+.registration-benefit span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.registration-benefit small {
+  color: var(--ink-muted);
+  line-height: 1.5;
+}
+
+.registration-card {
+  padding: clamp(1.35rem, 4vw, 2.5rem);
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  background: #fff;
+  box-shadow: 0 1.5rem 3rem rgba(23, 75, 53, 0.08);
+}
+
+.registration-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  padding: 0.3rem;
+  border-radius: 0.8rem;
+  background: #eff7df;
+}
+
+.registration-tabs button {
+  padding: 0.7rem 1rem;
+  border: 0;
+  border-radius: 0.6rem;
+  background: transparent;
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+
+.registration-tabs button i {
+  margin-right: 0.45rem;
+}
+
+.registration-tabs button.active {
+  background: #fff;
+  color: var(--forest);
+  box-shadow: 0 0.2rem 0.7rem rgba(23, 75, 53, 0.1);
+}
+
+.registration-heading {
+  margin: 2rem 0 1.5rem;
+}
+
+.registration-heading h3 {
+  margin-bottom: 0.45rem;
+  color: var(--forest-dark);
+  font-size: 1.45rem;
+}
+
+.registration-heading p {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+}
+
+.registration-card .form-label {
+  color: var(--forest-dark);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.registration-card .form-control {
+  border-color: var(--line);
+  border-radius: 0.65rem;
+  padding: 0.7rem 0.85rem;
+}
+
+.registration-card .form-control:focus {
+  border-color: var(--leaf);
+  box-shadow: 0 0 0 0.2rem rgba(93, 164, 71, 0.15);
+}
+
 .site-footer {
   padding: 1.5rem 0;
   background: var(--forest-dark);
@@ -548,6 +666,14 @@ a {
 
   .site-header .navbar-collapse {
     padding: 1rem 0 0.5rem;
+  }
+
+  .registration-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .registration-intro {
+    max-width: 650px;
   }
 }
 
