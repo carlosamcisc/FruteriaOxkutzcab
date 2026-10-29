@@ -1,21 +1,22 @@
 export const collections = {
-  users: "users",
-  sellerApplications: "sellerApplications",
-  sellers: "sellers",
-  products: "products",
-  quotes: "quotes",
-  orders: "orders",
-  inventoryMovements: "inventoryMovements",
+  usuarios: "usuarios",
+  solicitudesVendedores: "solicitudesVendedores",
+  vendedores: "vendedores",
+  productos: "productos",
+  cotizaciones: "cotizaciones",
+  pedidos: "pedidos",
+  movimientosInventario: "movimientosInventario",
 } as const;
 
 export const documentPaths = {
-  user: (uid: string) => `${collections.users}/${uid}`,
-  sellerApplication: (uid: string) =>
-    `${collections.sellerApplications}/${uid}`,
-  seller: (sellerId: string) => `${collections.sellers}/${sellerId}`,
-  product: (productId: string) => `${collections.products}/${productId}`,
-  quote: (quoteId: string) => `${collections.quotes}/${quoteId}`,
-  order: (orderId: string) => `${collections.orders}/${orderId}`,
-  inventoryMovement: (movementId: string) =>
-    `${collections.inventoryMovements}/${movementId}`,
+  usuario: (uid: string) => `${collections.usuarios}/${uid}`,
+  solicitudVendedor: (uid: string) =>
+    `${collections.solicitudesVendedores}/${uid}`,
+  vendedor: (vendedorId: string) => `${collections.vendedores}/${vendedorId}`,
+  producto: (productoId: string) => `${collections.productos}/${productoId}`,
+  cotizacion: (cotizacionId: string) =>
+    `${collections.cotizaciones}/${cotizacionId}`,
+  pedido: (pedidoId: string) => `${collections.pedidos}/${pedidoId}`,
+  movimientoInventario: (movimientoId: string) =>
+    `${collections.movimientosInventario}/${movimientoId}`,
 } as const;

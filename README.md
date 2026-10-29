@@ -16,8 +16,10 @@ pagos.
   forma confiable, como confirmar pedidos y actualizar inventario.
 
 La interfaz no debe ser la autoridad para roles, precios, totales ni
-existencias. Las reglas de Firestore y Storage comienzan denegando todo acceso;
-deben ampliarse y probarse junto con cada funcionalidad antes de habilitarla.
+existencias. Firestore permite ahora que una cuenta autenticada cree y lea su
+propio perfil y, para vendedores, su solicitud pendiente. El resto de
+colecciones y Storage continúan protegidos hasta implementar sus flujos y
+reglas específicas.
 La configuración web de Firebase no sustituye esas reglas ni debe tratarse
 como autorización.
 
@@ -132,8 +134,24 @@ Direcciones configuradas:
 | Firebase Emulator UI | `http://localhost:4000` |
 
 Los emuladores deben usarse antes de probar reglas con datos de desarrollo.
-Actualmente las reglas de Firestore y Storage deniegan todo acceso; esto es
-intencional hasta implementar Authentication y las reglas por rol.
+Firestore permite únicamente los documentos propios de `usuarios` y
+`solicitudesVendedores` para cuentas autenticadas. Las demás colecciones y
+Storage continúan denegando todo acceso hasta implementar sus reglas por rol.
+
+Después de cambiar `firestore.rules`, publica las reglas en el proyecto
+Firebase activo antes de probar el registro:
+
+```powershell
+firebase deploy --only firestore:rules --project fruteria-oxkutzcab
+```
+
+También confirma en Firebase Console que Authentication tenga habilitado el
+proveedor **Correo electrónico/contraseña**.
+
+El esquema de Firestore usa nombres de colecciones y campos en español. Si
+existen documentos del esquema anterior en inglés, consulta la sección de
+migración en [docs/firebase-data-model.md](./docs/firebase-data-model.md) antes
+de eliminar datos antiguos.
 
 ## Despliegue de Firebase
 

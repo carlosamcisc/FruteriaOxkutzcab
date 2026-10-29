@@ -1,3 +1,12 @@
+import { useState } from "react";
+import type { FormEvent } from "react";
+import {
+  registerCustomer,
+  registerSeller,
+  type CustomerRegistrationData,
+  type SellerRegistrationData,
+} from "../services/registration";
+
 const benefits = [
   {
     icon: "bi-shop-window",
@@ -26,6 +35,88 @@ const steps = [
 ];
 
 export function App() {
+  const [registrationType, setRegistrationType] = useState<"customer" | "seller">("customer");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(
+    null,
+  );
+
+  const handleRegistrationTypeChange = (type: "customer" | "seller") => {
+    setRegistrationType(type);
+    setFeedback(null);
+  };
+
+  const handleRegistration = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setFeedback(null);
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const commonData: CustomerRegistrationData = {
+      displayName: String(formData.get("nombre") ?? ""),
+      email: String(formData.get("correo") ?? ""),
+      password: String(formData.get("contrasena") ?? ""),
+      phone: String(formData.get("telefono") ?? ""),
+    };
+
+    try {
+      if (registrationType === "seller") {
+        const sellerData: SellerRegistrationData = {
+          ...commonData,
+          businessName: String(formData.get("nombreNegocio") ?? ""),
+          description: String(formData.get("descripcion") ?? ""),
+          municipality: String(formData.get("municipio") ?? ""),
+        };
+        await registerSeller(sellerData);
+      } else {
+        await registerCustomer(commonData);
+      }
+
+      form.reset();
+      setFeedback({
+        type: "success",
+        message:
+          registrationType === "seller"
+            ? "Tu cuenta fue creada. Tu solicitud de vendedor quedó pendiente de revisión."
+            : "Tu cuenta fue creada correctamente. Ya puedes comenzar a comprar.",
+      });
+    } catch (error) {
+      const code =
+        error && typeof error === "object" && "code" in error
+          ? String(error.code)
+          : error instanceof Error
+            ? error.message
+            : "";
+      let message = "No pudimos completar el registro. Intenta nuevamente.";
+
+      if (code.includes("auth/email-already-in-use")) {
+        message = "Este correo ya está registrado. Intenta iniciar sesión.";
+      } else if (code.includes("auth/invalid-email")) {
+        message = "El correo electrónico no es válido.";
+      } else if (code.includes("auth/weak-password")) {
+        message = "La contraseña debe tener al menos 6 caracteres.";
+      } else if (code.includes("auth/network-request-failed")) {
+        message = "No hay conexión con Firebase. Revisa tu conexión a internet.";
+      } else if (
+        code.includes("permission-denied") ||
+        code.includes("PERMISSION_DENIED")
+      ) {
+        message =
+          "Firebase rechazó el guardado del perfil. Publica las reglas de Firestore y vuelve a intentarlo.";
+      } else if (code.includes("auth/operation-not-allowed")) {
+        message =
+          "El registro con correo y contraseña no está habilitado en Firebase Authentication.";
+      } else if (code.includes("Falta configurar Firebase")) {
+        message = code;
+      }
+
+      setFeedback({ type: "error", message });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="app-shell">
       <header className="site-header">
@@ -201,7 +292,11 @@ export function App() {
                 <div className="col-lg-6">
                   <div className="row g-3">
                     <div className="col-sm-6">
-                      <a className="role-card" href="#registro-comprador">
+                          <a
+                            className="role-card"
+                            href="#registro-comprador"
+                            onClick={() => handleRegistrationTypeChange("customer")}
+                          >
                         <i className="bi bi-cart3" aria-hidden="true" />
                         <span>
                           <strong>Soy comprador</strong>
@@ -211,7 +306,11 @@ export function App() {
                       </a>
                     </div>
                     <div className="col-sm-6">
-                      <a className="role-card role-card-light" href="#registro-vendedor">
+                      <a
+                        className="role-card role-card-light"
+                        href="#registro-comprador"
+                        onClick={() => handleRegistrationTypeChange("seller")}
+                      >
                         <i className="bi bi-shop" aria-hidden="true" />
                         <span>
                           <strong>Soy vendedor</strong>
@@ -222,6 +321,127 @@ export function App() {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="registration-section" id="registro-comprador">
+          <div className="container">
+            <div className="registration-layout">
+              <div className="registration-intro">
+                <span className="section-kicker">Crea tu cuenta</span>
+                <h2>Empieza a mover tu negocio con productos frescos.</h2>
+                <p>
+                  Regístrate en minutos. Tus datos se guardan de forma segura en
+                  Firebase y podrás actualizar tu perfil más adelante.
+                </p>
+                <div className="registration-benefit">
+                  <i className="bi bi-shield-check" aria-hidden="true" />
+                  <span>
+                    <strong>Registro seguro</strong>
+                    <small>Usamos Firebase Authentication para proteger tu acceso.</small>
+                  </span>
+                </div>
+                <div className="registration-benefit">
+                  <i className="bi bi-person-check" aria-hidden="true" />
+                  <span>
+                    <strong>Un solo acceso</strong>
+                    <small>Con tu cuenta puedes comprar o solicitar vender.</small>
+                  </span>
+                </div>
+              </div>
+
+              <div className="registration-card">
+                <div className="registration-tabs" role="tablist" aria-label="Tipo de cuenta">
+                  <button
+                    className={registrationType === "customer" ? "active" : ""}
+                    type="button"
+                    role="tab"
+                    aria-selected={registrationType === "customer"}
+                    onClick={() => handleRegistrationTypeChange("customer")}
+                  >
+                    <i className="bi bi-cart3" aria-hidden="true" />
+                    Cliente
+                  </button>
+                  <button
+                    className={registrationType === "seller" ? "active" : ""}
+                    type="button"
+                    role="tab"
+                    aria-selected={registrationType === "seller"}
+                    onClick={() => handleRegistrationTypeChange("seller")}
+                  >
+                    <i className="bi bi-shop" aria-hidden="true" />
+                    Vendedor
+                  </button>
+                </div>
+
+                <div className="registration-heading">
+                  <h3>{registrationType === "seller" ? "Solicita ser vendedor" : "Regístrate como cliente"}</h3>
+                  <p>
+                    {registrationType === "seller"
+                      ? "Crearemos tu cuenta y enviaremos tus datos para aprobación."
+                      : "Crea tu cuenta para encontrar y cotizar productos al mayoreo."}
+                  </p>
+                </div>
+
+                {feedback && (
+                  <div className={`alert alert-${feedback.type === "success" ? "success" : "danger"}`} role="alert">
+                    {feedback.message}
+                  </div>
+                )}
+
+                <form onSubmit={handleRegistration}>
+                  <div className="row g-3">
+                    <div className="col-md-6">
+                      <label className="form-label" htmlFor="nombre">Nombre completo</label>
+                      <input className="form-control" id="nombre" name="nombre" required autoComplete="name" />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label" htmlFor="telefono">Teléfono</label>
+                      <input className="form-control" id="telefono" name="telefono" type="tel" required autoComplete="tel" />
+                    </div>
+                    <div className="col-12">
+                      <label className="form-label" htmlFor="correo">Correo electrónico</label>
+                      <input className="form-control" id="correo" name="correo" type="email" required autoComplete="email" />
+                    </div>
+                    <div className="col-12">
+                      <label className="form-label" htmlFor="contrasena">Contraseña</label>
+                      <input className="form-control" id="contrasena" name="contrasena" type="password" minLength={6} required autoComplete="new-password" />
+                      <div className="form-text">Mínimo 6 caracteres.</div>
+                    </div>
+
+                    {registrationType === "seller" && (
+                      <>
+                        <div className="col-12">
+                          <label className="form-label" htmlFor="nombreNegocio">Nombre del negocio</label>
+                          <input className="form-control" id="nombreNegocio" name="nombreNegocio" required />
+                        </div>
+                        <div className="col-md-6">
+                          <label className="form-label" htmlFor="municipio">Municipio</label>
+                          <input className="form-control" id="municipio" name="municipio" required defaultValue="Oxkutzcab" />
+                        </div>
+                        <div className="col-12">
+                          <label className="form-label" htmlFor="descripcion">Describe tu negocio</label>
+                          <textarea className="form-control" id="descripcion" name="descripcion" rows={3} required />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <button className="btn btn-primary w-100 mt-4" type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" aria-hidden="true" />
+                        Creando cuenta...
+                      </>
+                    ) : (
+                      <>
+                        Crear cuenta
+                        <i className="bi bi-arrow-right ms-2" aria-hidden="true" />
+                      </>
+                    )}
+                  </button>
+                </form>
               </div>
             </div>
           </div>

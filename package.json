@@ -7,12 +7,14 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -b --pretty"
+    "typecheck": "tsc -b --pretty",
+    "migrate:firestore-schema": "node scripts/migrate-firestore-schema.mjs"
   },
   "dependencies": {
     "bootstrap": "^5.3.3",
     "bootstrap-icons": "^1.11.3",
     "firebase": "^12.5.0",
+    "firebase-admin": "^13.6.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
