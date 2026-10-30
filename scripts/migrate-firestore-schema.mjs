@@ -76,6 +76,7 @@ const statusTranslations = {
 const fieldTranslations = Object.assign(
   {},
   ...migrations.map(([, , fields]) => fields),
+  { productId: "productoId", productName: "nombreProducto", packageLabel: "presentacion", quantity: "cantidad", requestedUnitPriceMinor: "precioUnitarioSolicitadoCentavos", quotedUnitPriceMinor: "precioUnitarioCotizadoCentavos", unitPriceMinor: "precioUnitarioCentavos", lineTotalMinor: "totalLineaCentavos" },
 );
 
 function translateValue(key, value) {
@@ -89,7 +90,7 @@ function translateValue(key, value) {
     return Object.fromEntries(
       Object.entries(value).map(([nestedKey, nestedValue]) => [
         fieldTranslations[nestedKey] ?? nestedKey,
-        translateValue(nestedKey, nestedValue),
+        translateValue(fieldTranslations[nestedKey] ?? nestedKey, nestedValue),
       ]),
     );
   }
@@ -108,14 +109,16 @@ function translateDocument(data, fields) {
 for (const [source, target, fields] of migrations) {
   const snapshot = await db.collection(source).get();
   let migrated = 0;
+  let skipped = 0;
   let batch = db.batch();
   let batchSize = 0;
 
   for (const document of snapshot.docs) {
     const targetReference = db.collection(target).doc(document.id);
-    batch.set(targetReference, translateDocument(document.data(), fields), {
-      merge: true,
-    });
+    if ((await targetReference.get()).exists) { skipped += 1; continue; }
+    const translated = translateDocument(document.data(), fields);
+    if (target === "pedidos" && translated.estado === "cancelada") translated.estado = "cancelado";
+    batch.create(targetReference, translated);
     migrated += 1;
     batchSize += 1;
 
@@ -129,7 +132,7 @@ for (const [source, target, fields] of migrations) {
   if (batchSize > 0) {
     await batch.commit();
   }
-  console.log(`${source} -> ${target}: ${migrated} documento(s) copiado(s)`);
+  console.log(`${source} -> ${target}: ${migrated} documento(s) copiado(s), ${skipped} existente(s) conservado(s)`);
 }
 
 console.log("Migración terminada. Los documentos originales no fueron eliminados.");
