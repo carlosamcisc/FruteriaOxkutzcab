@@ -46,6 +46,7 @@ export function InicioSesionPage() {
                     Ir a mi inicio
                     <i className="bi bi-arrow-right ms-2" aria-hidden="true" />
                   </a>
+                  <a className="btn btn-outline-success w-100 mb-2" href="#admin-inicio">Administración</a>
                   <a className="btn btn-outline-success w-100 mb-2" href="#vendedor-inicio">Ir a mi negocio</a>
                   <button className="btn btn-outline-success w-100" type="button" onClick={handleLogout}>
                     Cerrar sesión

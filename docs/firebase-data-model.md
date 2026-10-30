@@ -127,3 +127,14 @@ hacerlo, y que los pedidos y cotizaciones de otros usuarios permanecen privados.
 ```powershell
 firebase deploy --only firestore:rules --project fruteria-oxkutzcab
 ```
+
+## Revisión desde el panel de administración
+
+El flujo administrativo de `#admin-inicio` usa el custom claim `admin: true` de
+Firebase Authentication. Las reglas permiten a esas cuentas listar solicitudes,
+rechazar solicitudes pendientes con motivo o aprobar y crear el perfil público
+en una misma escritura atómica. Se registran `revisadoPor` y `revisadoEn`.
+La aprobación incompleta puede repararse desde el mismo panel; los perfiles ya
+existentes no se sobrescriben. Los roles siguen sin depender de `usuarios`.
+La cuenta de servicio se utiliza solo en terminal para asignar el claim inicial.
+Consulta [el panel de administración](admin-panel.md) para configurar el acceso.

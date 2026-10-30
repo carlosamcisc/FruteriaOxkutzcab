@@ -1337,3 +1337,10 @@ a {
 .seller-lines li { margin-bottom: .5rem; }
 .seller-page .client-stat strong { overflow-wrap: anywhere; font-size: clamp(1.15rem, 2vw, 1.6rem); }
 .seller-page .activity-card h3 { overflow-wrap: anywhere; }
+
+.admin-details { display: grid; grid-template-columns: minmax(100px, .8fr) minmax(0, 1.5fr); gap: .5rem 1rem; margin: 1.25rem 0; font-size: .9rem; }
+.admin-details dt { color: var(--ink-muted); font-weight: 500; }
+.admin-details dd { margin: 0; overflow-wrap: anywhere; }
+.admin-page .activity-card h3 { overflow-wrap: anywhere; }
+.admin-page .client-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 575.98px) { .admin-page .client-stats { grid-template-columns: 1fr; } }

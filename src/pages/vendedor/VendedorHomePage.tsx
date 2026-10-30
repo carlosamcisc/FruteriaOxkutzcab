@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import type { User } from "firebase/auth";
 import { useAuth } from "../../features/auth/hooks/useAuth";
 import { logout } from "../../features/auth/services/authentication";
@@ -48,8 +48,8 @@ function SellerDashboard({ user }: { user: User }) {
       <div className="container py-4">
         {(error || logoutError) && <div className="alert alert-danger" role="alert">{error || logoutError}</div>}
         {loading ? <p role="status">Cargando tu negocio…</p> : !perfil ? <section className="registration-card">
-          <h2>{solicitud?.estado === "rechazada" ? "Solicitud rechazada" : solicitud ? "Tu solicitud está en revisión" : "Aún no tienes un negocio registrado"}</h2>
-          <p>{solicitud?.estado === "rechazada" ? solicitud.motivoRechazo ?? "Contacta al administrador para conocer los detalles." : solicitud ? "Podrás administrar tus productos cuando el administrador habilite tu negocio." : "Solicita tu registro como vendedor para empezar a ofrecer tus productos."}</p>
+          <h2>{solicitud?.estado === "rechazada" ? "Solicitud rechazada" : solicitud?.estado === "aprobada" ? "Tu solicitud está aprobada" : solicitud ? "Tu solicitud está en revisión" : "Aún no tienes un negocio registrado"}</h2>
+          <p>{solicitud?.estado === "rechazada" ? solicitud.motivoRechazo ?? "Contacta al administrador para conocer los detalles." : solicitud?.estado === "aprobada" ? "Falta habilitar el perfil de tu negocio. El administrador puede completar la habilitación desde su panel." : solicitud ? "Podrás administrar tus productos cuando el administrador habilite tu negocio." : "Solicita tu registro como vendedor para empezar a ofrecer tus productos."}</p>
           {!solicitud && <a className="btn btn-primary" href="#registro-vendedor">Registrar mi negocio</a>}
           {solicitud && <p className="mb-0 text-secondary">{solicitud.nombreNegocio} · {solicitud.municipio} · {solicitud.telefonoContacto}</p>}
         </section> : <>
