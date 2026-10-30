@@ -270,3 +270,10 @@ Incluye catálogo editable para vendedores activos y consulta en tiempo real de
 cotizaciones y pedidos propios. Las cuentas pendientes o suspendidas muestran su
 estado y no pueden publicar productos. Consulta los requisitos de aprobación y
 publicación de reglas en [el modelo de Firebase](docs/firebase-data-model.md#panel-del-vendedor).
+
+## Panel de administración
+
+La ruta `#admin-inicio` permite revisar solicitudes reales de vendedores y aprobar
+el negocio junto con la creación de su perfil en una sola transacción. El acceso
+requiere un custom claim administrativo de Firebase Authentication. Consulta
+[la configuración, permisos y pruebas](docs/admin-panel.md).
