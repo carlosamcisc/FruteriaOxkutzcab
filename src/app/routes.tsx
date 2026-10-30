@@ -1,3 +1,4 @@
+import { AdminPage } from "../pages/admin/AdminPage";
 import { VendedorHomePage } from "../pages/vendedor/VendedorHomePage";
 import type { ReactElement } from "react";
 import { InicioSesionPage } from "../pages/autenticacion/InicioSesionPage";
@@ -13,6 +14,7 @@ import { BienvenidaPage } from "../pages/publico/BienvenidaPage";
  * página de bienvenida.
  */
 export const routes: Record<string, () => ReactElement> = {
+  "#admin-inicio": () => <AdminPage />,
   "#vendedor-inicio": () => <VendedorHomePage />,
   "#inicio-sesion": () => <InicioSesionPage />,
   "#seleccion-rol": () => <SeleccionRolPage />,

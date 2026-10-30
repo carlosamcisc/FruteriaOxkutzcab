@@ -34,7 +34,13 @@ export async function logout(): Promise<void> {
   await signOut(getAuthService());
 }
 
+export async function isAdministrator(user: User, refresh = false): Promise<boolean> {
+  return (await user.getIdTokenResult(refresh)).claims.admin === true;
+}
+
 export async function getAccountHome(uid: string) {
+  const user = getAuthService().currentUser;
+  if (user?.uid === uid && await isAdministrator(user)) return "#admin-inicio";
   const db = getFirestoreDb();
   const [seller, application] = await Promise.all([
     getDoc(doc(db, documentPaths.vendedor(uid))),

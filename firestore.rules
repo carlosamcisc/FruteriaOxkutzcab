@@ -2,6 +2,39 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function isOwner(uid) { return request.auth != null && request.auth.uid == uid; }
+    function isAdmin() {
+      return request.auth != null && request.auth.token.get('admin', false) == true;
+    }
+    function reviewedApplication(uid) {
+      let data = request.resource.data;
+      return isAdmin()
+        && resource.data.propietarioId == uid
+        && data.diff(resource.data).affectedKeys().hasOnly(['estado', 'revisadoEn', 'revisadoPor', 'motivoRechazo'])
+        && data.revisadoEn == request.time && data.revisadoPor == request.auth.uid
+        && !exists(/databases/$(database)/documents/vendedores/$(uid))
+        && ((data.estado == 'rechazada' && resource.data.estado == 'pendiente'
+          && data.motivoRechazo is string && data.motivoRechazo.size() > 0 && data.motivoRechazo.size() <= 1000)
+        || (data.estado == 'aprobada' && resource.data.estado in ['pendiente', 'aprobada']
+          && data.motivoRechazo == null
+          && getAfter(/databases/$(database)/documents/vendedores/$(uid)).data.propietarioId == uid
+          && getAfter(/databases/$(database)/documents/vendedores/$(uid)).data.creadoEn == request.time));
+    }
+    function approvedSeller(uid) {
+      let data = request.resource.data;
+      let application = getAfter(/databases/$(database)/documents/solicitudesVendedores/$(uid)).data;
+      return isAdmin()
+        && application.estado == 'aprobada' && application.propietarioId == uid
+        && application.revisadoPor == request.auth.uid && application.revisadoEn == request.time
+        && data.keys().hasAll(['propietarioId', 'nombreNegocio', 'descripcion', 'telefonoContacto', 'municipio', 'estado', 'creadoEn', 'actualizadoEn'])
+        && data.keys().hasOnly(['propietarioId', 'nombreNegocio', 'descripcion', 'telefonoContacto', 'municipio', 'estado', 'creadoEn', 'actualizadoEn'])
+        && data.propietarioId == uid && data.estado == 'activo'
+        && data.nombreNegocio is string && data.nombreNegocio.size() > 0
+        && data.nombreNegocio == application.nombreNegocio
+        && data.descripcion is string && data.descripcion == application.descripcion
+        && data.telefonoContacto is string && data.telefonoContacto == application.telefonoContacto
+        && data.municipio is string && data.municipio == application.municipio
+        && data.creadoEn == request.time && data.actualizadoEn == request.time;
+    }
     function activeSeller() {
       return request.auth != null
         && exists(/databases/$(database)/documents/vendedores/$(request.auth.uid))
@@ -32,12 +65,14 @@ service cloud.firestore {
     }
     match /solicitudesVendedores/{uid} {
       allow create: if isOwner(uid) && request.resource.data.propietarioId == request.auth.uid && request.resource.data.estado == 'pendiente';
-      allow read: if isOwner(uid);
-      allow update, delete: if false;
+      allow read: if isOwner(uid) || isAdmin();
+      allow update: if reviewedApplication(uid);
+      allow delete: if false;
     }
     match /vendedores/{uid} {
       allow read: if request.auth != null;
-      allow write: if false;
+      allow create: if approvedSeller(uid);
+      allow update, delete: if false;
     }
     match /productos/{id} {
       allow read: if request.auth != null && (resource.data.estado == 'publicado' || resource.data.vendedorId == request.auth.uid);
