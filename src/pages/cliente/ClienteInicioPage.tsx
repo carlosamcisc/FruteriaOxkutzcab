@@ -49,7 +49,7 @@ export function ClienteInicioPage() {
     return <LoadingState message="Verificando tu sesión..." />;
   }
 
-  return <ClienteInicio user={user} />;
+  return <ClienteInicio key={user.uid} user={user} />;
 }
 
 function ClienteInicio({ user }: { user: User }) {

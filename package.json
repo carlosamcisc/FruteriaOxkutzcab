@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --pretty",
     "test:rules": "firebase emulators:exec --only firestore --project demo-fruteria-admin \"node --test tests/firestore-admin.rules.test.mjs\"",
+    "test:commerce": "firebase emulators:exec --only firestore --project demo-fruteria-admin \"node --test --test-concurrency=1 tests/firestore-admin.rules.test.mjs functions/tests/commerce.test.mjs\"",
+    "test:flow": "firebase emulators:exec --only auth,firestore,functions,storage --project demo-fruteria-admin \"node --test tests/commerce-flow.test.mjs\"",
     "admin:claim": "node scripts/set-admin-claim.mjs",
     "migrate:firestore-schema": "node scripts/migrate-firestore-schema.mjs"
   },

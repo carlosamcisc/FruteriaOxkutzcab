@@ -2,6 +2,18 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    match /productos/{uid}/{productId}/{fileName} {
+      function owner() { return request.auth != null && request.auth.uid == uid; }
+      function product() { return firestore.get(/databases/(default)/documents/productos/$(productId)).data; }
+      function seller() { return firestore.get(/databases/(default)/documents/vendedores/$(uid)).data; }
+      allow read: if request.auth != null && (owner() || (product().vendedorId == uid && product().estado == 'publicado' && seller().estado == 'activo'));
+      allow create: if owner() && seller().estado == 'activo' && product().vendedorId == uid
+        && request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/(jpeg|png|webp)')
+        && fileName.matches('[A-Za-z0-9_-]+\\.(jpg|png|webp)');
+      allow delete: if owner();
+      allow update: if false;
+    }
     match /{path=**} {
       allow read, write: if false;
     }

@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useAuth } from "../../features/auth/hooks/useAuth";
 import { useLogin } from "../../features/auth/hooks/useLogin";
+import { getAccountHome } from '../../features/auth/services/authentication';
 import { AuthLayout } from "../../shared/components/AuthLayout";
 import { FeedbackAlert } from "../../shared/components/FeedbackAlert";
 
@@ -42,10 +43,13 @@ export function InicioSesionPage() {
                     Accediste como <strong>{user.email}</strong>.
                   </p>
                   <FeedbackAlert feedback={visibleFeedback} />
-                  <a className="btn btn-primary w-100 mb-2" href="#cliente-inicio">
+                  <button className="btn btn-primary w-100 mb-2" onClick={async () => {
+                    try { window.location.hash = await getAccountHome(user.uid); }
+                    catch { window.location.hash = '#cliente-inicio'; }
+                  }}>
                     Ir a mi inicio
                     <i className="bi bi-arrow-right ms-2" aria-hidden="true" />
-                  </a>
+                  </button>
                   <a className="btn btn-outline-success w-100 mb-2" href="#admin-inicio">Administración</a>
                   <a className="btn btn-outline-success w-100 mb-2" href="#vendedor-inicio">Ir a mi negocio</a>
                   <button className="btn btn-outline-success w-100" type="button" onClick={handleLogout}>

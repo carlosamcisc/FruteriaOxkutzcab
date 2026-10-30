@@ -1,5 +1,6 @@
 import type { Cotizacion, Pedido } from "../../../shared/domain/models";
 import type { ConId } from "../services/clienteInicio";
+import { OrderActions, QuoteActions } from '../../commerce/components/CommerceActions';
 import {
   estadoCotizacionInfo,
   estadoPedidoInfo,
@@ -7,7 +8,6 @@ import {
   formatDate,
 } from "../utils/formatters";
 
-const MAX_ITEMS = 5;
 
 function resumirElementos(elementos: { nombreProducto: string }[]): string {
   if (elementos.length === 0) {
@@ -33,10 +33,10 @@ export function OrderList({ pedidos }: { pedidos: ConId<Pedido>[] }) {
 
   return (
     <ul className="activity-list">
-      {pedidos.slice(0, MAX_ITEMS).map((pedido) => {
+      {pedidos.map((pedido) => {
         const estado = estadoPedidoInfo[pedido.estado];
         return (
-          <li key={pedido.id}>
+          <li key={pedido.id} className="flex-wrap">
             <div>
               <strong>{resumirElementos(pedido.elementos)}</strong>
               <small>
@@ -44,6 +44,7 @@ export function OrderList({ pedidos }: { pedidos: ConId<Pedido>[] }) {
               </small>
             </div>
             <span className={`status-pill status-${estado.tone}`}>{estado.label}</span>
+            <OrderActions order={pedido} />
           </li>
         );
       })}
@@ -58,10 +59,10 @@ export function QuoteList({ cotizaciones }: { cotizaciones: ConId<Cotizacion>[] 
 
   return (
     <ul className="activity-list">
-      {cotizaciones.slice(0, MAX_ITEMS).map((cotizacion) => {
+      {cotizaciones.map((cotizacion) => {
         const estado = estadoCotizacionInfo[cotizacion.estado];
         return (
-          <li key={cotizacion.id}>
+          <li key={cotizacion.id} className="flex-wrap">
             <div>
               <strong>{resumirElementos(cotizacion.elementos)}</strong>
               <small>
@@ -70,6 +71,7 @@ export function QuoteList({ cotizaciones }: { cotizaciones: ConId<Cotizacion>[] 
               </small>
             </div>
             <span className={`status-pill status-${estado.tone}`}>{estado.label}</span>
+            <QuoteActions quote={cotizacion} />
           </li>
         );
       })}

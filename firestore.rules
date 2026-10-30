@@ -7,7 +7,7 @@ service cloud.firestore {
     }
     function reviewedApplication(uid) {
       let data = request.resource.data;
-      return isAdmin()
+      return isAdmin() && validApplication(data, uid)
         && resource.data.propietarioId == uid
         && data.diff(resource.data).affectedKeys().hasOnly(['estado', 'revisadoEn', 'revisadoPor', 'motivoRechazo'])
         && data.revisadoEn == request.time && data.revisadoPor == request.auth.uid
@@ -35,52 +35,55 @@ service cloud.firestore {
         && data.municipio is string && data.municipio == application.municipio
         && data.creadoEn == request.time && data.actualizadoEn == request.time;
     }
-    function activeSeller() {
-      return request.auth != null
-        && exists(/databases/$(database)/documents/vendedores/$(request.auth.uid))
-        && get(/databases/$(database)/documents/vendedores/$(request.auth.uid)).data.estado == 'activo'
-        && get(/databases/$(database)/documents/vendedores/$(request.auth.uid)).data.propietarioId == request.auth.uid;
-    }
-    function validProduct(data) {
-      return data.keys().hasAll(['vendedorId', 'nombre', 'descripcion', 'categoria', 'presentacion', 'cantidadMinimaPedido', 'cantidadDisponible', 'precioUnitarioCentavos', 'moneda', 'estado', 'rutasImagenes', 'creadoEn', 'actualizadoEn'])
-        && data.keys().hasOnly(['vendedorId', 'nombre', 'descripcion', 'categoria', 'presentacion', 'cantidadMinimaPedido', 'cantidadDisponible', 'precioUnitarioCentavos', 'moneda', 'estado', 'rutasImagenes', 'creadoEn', 'actualizadoEn'])
-        && data.vendedorId == request.auth.uid
-        && data.nombre is string && data.nombre.size() > 0 && data.nombre.size() <= 120
-        && data.descripcion is string && data.descripcion.size() <= 2000
-        && data.categoria is string && data.categoria.size() > 0 && data.categoria.size() <= 60
-        && data.presentacion is string && data.presentacion.size() > 0 && data.presentacion.size() <= 120
-        && data.cantidadMinimaPedido is int && data.cantidadMinimaPedido >= 1 && data.cantidadMinimaPedido <= 1000000
-        && data.cantidadDisponible is int && data.cantidadDisponible >= 0 && data.cantidadDisponible <= 1000000
-        && data.precioUnitarioCentavos is int && data.precioUnitarioCentavos > 0 && data.precioUnitarioCentavos <= 999999999
-        && data.moneda == 'MXN'
-        && data.estado in ['borrador', 'publicado', 'pausado']
-        && data.rutasImagenes is list
+    function nonempty(value, max) { return value is string && value.size() > 0 && value.size() <= max; }
+    function validUser(data) {
+      return data.keys().hasAll(['nombre', 'correo', 'telefono', 'creadoEn', 'actualizadoEn'])
+        && data.keys().hasOnly(['nombre', 'correo', 'telefono', 'creadoEn', 'actualizadoEn'])
+        && nonempty(data.nombre, 120) && nonempty(data.correo, 320)
+        && (data.telefono == null || nonempty(data.telefono, 30))
         && data.creadoEn is timestamp && data.actualizadoEn == request.time;
     }
+    function validApplication(data, uid) {
+      return data.keys().hasAll(['propietarioId', 'nombreNegocio', 'descripcion', 'telefonoContacto', 'municipio', 'estado', 'enviadoEn', 'revisadoEn', 'revisadoPor', 'motivoRechazo'])
+        && data.keys().hasOnly(['propietarioId', 'nombreNegocio', 'descripcion', 'telefonoContacto', 'municipio', 'estado', 'enviadoEn', 'revisadoEn', 'revisadoPor', 'motivoRechazo'])
+        && data.propietarioId == uid && nonempty(data.nombreNegocio, 120)
+        && nonempty(data.descripcion, 2000) && nonempty(data.telefonoContacto, 30) && nonempty(data.municipio, 120)
+        && data.enviadoEn is timestamp;
+    }
+    function pendingApplication(uid) {
+      let data = request.resource.data;
+      return isOwner(uid) && validApplication(data, uid)
+        && !exists(/databases/$(database)/documents/vendedores/$(uid))
+        && data.estado == 'pendiente' && data.enviadoEn == request.time
+        && data.revisadoEn == null && data.revisadoPor == null && data.motivoRechazo == null;
+    }
     match /usuarios/{uid} {
-      allow create: if isOwner(uid) && request.resource.data.correo == request.auth.token.email;
+      allow create: if isOwner(uid) && validUser(request.resource.data) && request.resource.data.creadoEn == request.time && request.resource.data.correo == request.auth.token.email;
       allow read: if isOwner(uid);
-      allow update: if isOwner(uid) && request.resource.data.correo == resource.data.correo && request.resource.data.creadoEn == resource.data.creadoEn;
+      allow update: if isOwner(uid) && validUser(request.resource.data) && request.resource.data.correo == resource.data.correo && request.resource.data.creadoEn == resource.data.creadoEn;
       allow delete: if false;
     }
     match /solicitudesVendedores/{uid} {
-      allow create: if isOwner(uid) && request.resource.data.propietarioId == request.auth.uid && request.resource.data.estado == 'pendiente';
+      allow create: if pendingApplication(uid);
       allow read: if isOwner(uid) || isAdmin();
-      allow update: if reviewedApplication(uid);
+      allow update: if reviewedApplication(uid) || (resource.data.estado == 'rechazada' && pendingApplication(uid));
       allow delete: if false;
     }
     match /vendedores/{uid} {
       allow read: if request.auth != null;
       allow create: if approvedSeller(uid);
-      allow update, delete: if false;
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado', 'actualizadoEn'])
+        && request.resource.data.estado in ['activo', 'suspendido']
+        && request.resource.data.actualizadoEn == request.time;
+      allow delete: if false;
     }
     match /productos/{id} {
-      allow read: if request.auth != null && (resource.data.estado == 'publicado' || resource.data.vendedorId == request.auth.uid);
-      allow create: if activeSeller() && validProduct(request.resource.data)
-        && request.resource.data.creadoEn == request.time && request.resource.data.rutasImagenes.size() == 0;
-      allow update: if activeSeller() && resource.data.vendedorId == request.auth.uid && validProduct(request.resource.data)
-        && request.resource.data.creadoEn == resource.data.creadoEn
-        && request.resource.data.rutasImagenes == resource.data.rutasImagenes;
+      allow read: if request.auth != null && (resource.data.vendedorId == request.auth.uid
+        || (resource.data.estado == 'publicado'
+          && get(/databases/$(database)/documents/vendedores/$(resource.data.vendedorId)).data.estado == 'activo'));
+      // Only server functions write products and inventory atomically.
+      allow create, update: if false;
       allow delete: if false;
     }
     match /cotizaciones/{id} {
@@ -89,6 +92,10 @@ service cloud.firestore {
     }
     match /pedidos/{id} {
       allow read: if request.auth != null && (resource.data.compradorId == request.auth.uid || resource.data.vendedorId == request.auth.uid);
+      allow write: if false;
+    }
+    match /movimientosInventario/{id} {
+      allow read: if request.auth != null && (resource.data.vendedorId == request.auth.uid || isAdmin());
       allow write: if false;
     }
     match /{document=**} { allow read, write: if false; }

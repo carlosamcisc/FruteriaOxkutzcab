@@ -1,7 +1,7 @@
 ﻿import { readFileSync } from "node:fs";
 import { before, after, beforeEach, test } from "node:test";
 import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { collection, doc, getDocs, getDoc, setDoc, updateDoc, writeBatch, serverTimestamp, Timestamp } from "firebase/firestore";
+import { collection, doc, getDocs, getDoc, setDoc, updateDoc, writeBatch, serverTimestamp, Timestamp, query, where } from "firebase/firestore";
 
 let environment;
 const uid = "seller-one";
@@ -82,4 +82,70 @@ test("un perfil existente, incluso suspendido, no puede sobrescribirse al aproba
   await seed(sellerPath, { ...profile, estado: "suspendido" });
   await assertFails(approval(admin()));
   await assertFails(updateDoc(doc(admin(), sellerPath), { estado: "activo" }));
+});
+
+test('administrador suspende y reactiva sin cambiar datos del negocio', async () => {
+  await seed(sellerPath, profile);
+  await assertSucceeds(updateDoc(doc(admin(), sellerPath), { estado: 'suspendido', actualizadoEn: serverTimestamp() }));
+  await assertFails(updateDoc(doc(customer(), sellerPath), { estado: 'activo', actualizadoEn: serverTimestamp() }));
+  await assertFails(updateDoc(doc(admin(), sellerPath), { estado: 'activo', nombreNegocio: 'Alterado', actualizadoEn: serverTimestamp() }));
+  await assertSucceeds(updateDoc(doc(admin(), sellerPath), { estado: 'activo', actualizadoEn: serverTimestamp() }));
+});
+
+test('rechazado corrige y reenvía conservando UID, sin aprobarse', async () => {
+  await seed(applicationPath, { ...application, estado: 'rechazada', motivoRechazo: 'Corregir datos' });
+  const pending = { ...application, nombreNegocio: 'Negocio corregido', enviadoEn: serverTimestamp() };
+  await assertFails(setDoc(doc(customer(), applicationPath), { ...pending, estado: 'aprobada' }));
+  await assertSucceeds(setDoc(doc(customer(), applicationPath), pending));
+  await assertFails(setDoc(doc(customer(), applicationPath), { ...pending, municipio: 'Otro municipio' }));
+});
+
+test('solicitudes sin esquema o con revisión falsificada se rechazan', async () => {
+  const other = environment.authenticatedContext('new-user').firestore();
+  const ref = doc(other, 'solicitudesVendedores/new-user');
+  await assertFails(setDoc(ref, { propietarioId: 'new-user', estado: 'pendiente' }));
+  const valid = { ...application, propietarioId: 'new-user', enviadoEn: serverTimestamp() };
+  await assertFails(setDoc(ref, { ...valid, enviadoEn: 'hoy' }));
+  await assertFails(setDoc(ref, { ...valid, revisadoPor: adminUid }));
+  await assertFails(setDoc(ref, { ...valid, nombreNegocio: 42 }));
+  await assertFails(setDoc(ref, { ...valid, admin: true }));
+  await assertSucceeds(setDoc(ref, valid));
+});
+
+test('cliente no escribe productos, inventario ni pedidos directamente', async () => {
+  for (const name of ['productos', 'movimientosInventario', 'pedidos', 'cotizaciones']) {
+    await assertFails(setDoc(doc(customer(), `${name}/fake`), { vendedorId: uid, compradorId: uid }));
+  }
+});
+
+test('pedidos y cotizaciones son privados para sus participantes', async () => {
+  for (const name of ['pedidos', 'cotizaciones']) {
+    await seed(`${name}/one`, { vendedorId: uid, compradorId: 'buyer' });
+    await assertSucceeds(getDoc(doc(customer(), `${name}/one`)));
+    await assertSucceeds(getDoc(doc(environment.authenticatedContext('buyer').firestore(), `${name}/one`)));
+    await assertFails(getDoc(doc(environment.authenticatedContext('intruder').firestore(), `${name}/one`)));
+  }
+});
+
+test('perfil privado valida tipos y no admite roles agregados por el usuario', async () => {
+  const db = environment.authenticatedContext('new-user', { email: 'new@example.test' }).firestore();
+  const ref = doc(db, 'usuarios/new-user');
+  const data = { nombre: 'Cliente', correo: 'new@example.test', telefono: null, creadoEn: serverTimestamp(), actualizadoEn: serverTimestamp() };
+  await assertFails(setDoc(ref, { ...data, nombre: 42 }));
+  await assertFails(setDoc(ref, { ...data, admin: true }));
+  await assertSucceeds(setDoc(ref, data));
+  await assertFails(updateDoc(ref, { admin: true, actualizadoEn: serverTimestamp() }));
+});
+
+test('catálogo consulta por vendedor activo y niega productos suspendidos al comprador', async () => {
+  await seed(sellerPath, profile);
+  await seed('productos/one', { vendedorId: uid, estado: 'publicado' });
+  const buyer = environment.authenticatedContext('buyer').firestore();
+  const catalog = query(collection(buyer, 'productos'), where('vendedorId', '==', uid), where('estado', '==', 'publicado'));
+  await assertSucceeds(getDocs(catalog));
+  await assertSucceeds(getDoc(doc(buyer, 'productos/one')));
+  await seed(sellerPath, { ...profile, estado: 'suspendido' });
+  await assertFails(getDocs(catalog));
+  await assertFails(getDoc(doc(buyer, 'productos/one')));
+  await assertSucceeds(getDoc(doc(customer(), 'productos/one')));
 });

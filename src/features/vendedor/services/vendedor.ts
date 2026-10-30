@@ -1,5 +1,6 @@
-import { addDoc, collection, doc, onSnapshot, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
+import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
 import { getFirestoreDb } from "../../../services/firestore";
+import { callCommerce } from '../../../services/functions';
 import { collections, documentPaths } from "../../../shared/domain/paths";
 import type { Cotizacion, Pedido, PerfilVendedor, Producto, SolicitudVendedor } from "../../../shared/domain/models";
 
@@ -22,12 +23,7 @@ export function observeSellerCollection<T extends Producto | Cotizacion | Pedido
   }, error);
 }
 
-export async function saveProduct(uid: string, input: ProductoInput, productId?: string) {
-  const db = getFirestoreDb();
-  if (productId) {
-    await updateDoc(doc(db, documentPaths.producto(productId)), { ...input, actualizadoEn: serverTimestamp() });
-  } else {
-    await addDoc(collection(db, collections.productos), { ...input, vendedorId: uid, moneda: "MXN", rutasImagenes: [], creadoEn: serverTimestamp(), actualizadoEn: serverTimestamp() });
-  }
+export async function saveProduct(input: ProductoInput, productId?: string, expectedStock?: number) {
+  return callCommerce('guardarProducto', { ...input, ...(productId ? { productId, expectedStock } : {}) });
 }
 

@@ -5,12 +5,15 @@ import type { AccountRole } from "../../../shared/domain/models";
 import {
   registerCustomer,
   registerSeller,
+  submitSellerApplication,
   type CustomerRegistrationData,
   type SellerRegistrationData,
 } from "../services/registration";
 import { mapAuthError } from "../utils/mapAuthError";
+import { useAuth } from './useAuth';
 
 export function useRegistration(role: AccountRole) {
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
@@ -36,12 +39,14 @@ export function useRegistration(role: AccountRole) {
           description: String(formData.get("descripcion") ?? ""),
           municipality: String(formData.get("municipio") ?? ""),
         };
-        await registerSeller(sellerData);
+        if (user) await submitSellerApplication(user.uid, sellerData);
+        else await registerSeller(sellerData);
       } else {
         await registerCustomer(commonData);
       }
 
       form.reset();
+      window.location.hash = role === 'seller' ? '#vendedor-inicio' : '#cliente-inicio';
       setFeedback({
         type: "success",
         message:
@@ -52,7 +57,7 @@ export function useRegistration(role: AccountRole) {
     } catch (error) {
       setFeedback({
         type: "error",
-        message: mapAuthError(error, "No pudimos completar el registro. Intenta nuevamente."),
+        message: mapAuthError(error, error instanceof Error && !('code' in error) ? error.message : "No pudimos completar el registro. Intenta nuevamente."),
       });
     } finally {
       setIsSubmitting(false);

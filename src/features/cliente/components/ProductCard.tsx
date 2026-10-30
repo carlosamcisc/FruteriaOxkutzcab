@@ -1,11 +1,17 @@
 import type { ProductoCatalogo } from "../hooks/useClienteInicio";
 import { emojiForCategory, formatCentavos } from "../utils/formatters";
+import { ActionForm } from '../../commerce/components/CommerceActions';
+import { callCommerce } from '../../../services/functions';
+import { useAuth } from '../../auth/hooks/useAuth';
+import { ProductPhoto } from '../../../shared/components/ProductPhoto';
 
 export function ProductCard({ producto }: { producto: ProductoCatalogo }) {
+  const { user } = useAuth();
   const agotado = producto.cantidadDisponible <= 0;
 
   return (
     <article className="product-card">
+      <ProductPhoto path={producto.rutasImagenes[0]} name={producto.nombre} />
       <div className="product-card-visual" aria-hidden="true">
         <span>{emojiForCategory(producto.categoria)}</span>
         <span className="product-category">{producto.categoria}</span>
@@ -36,6 +42,12 @@ export function ProductCard({ producto }: { producto: ProductoCatalogo }) {
             </dd>
           </div>
         </dl>
+        {!agotado && producto.cantidadDisponible >= producto.cantidadMinimaPedido && user?.uid !== producto.vendedorId && <ActionForm label="Solicitar cotización" run={data => callCommerce('solicitarCotizacion', {
+          productId: producto.id, quantity: Number(data.get('quantity')), note: String(data.get('note') ?? ''),
+        })}>
+          <label className="d-block">Presentaciones<input className="form-control mb-2" name="quantity" type="number" min={producto.cantidadMinimaPedido} max={producto.cantidadDisponible} step="1" required defaultValue={producto.cantidadMinimaPedido} /></label>
+          <label className="d-block">Nota para el vendedor<textarea className="form-control mb-2" name="note" maxLength={1000} /></label>
+        </ActionForm>}
       </div>
     </article>
   );
