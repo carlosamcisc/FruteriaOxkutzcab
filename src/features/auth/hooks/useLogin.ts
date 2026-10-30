@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import type { Feedback } from "../../../shared/components/FeedbackAlert";
-import { loginWithEmail, logout, sendPasswordReset } from "../services/authentication";
+import { getAccountHome, loginWithEmail, logout, sendPasswordReset } from "../services/authentication";
 import { mapAuthError } from "../utils/mapAuthError";
 
 export function useLogin() {
@@ -17,12 +17,12 @@ export function useLogin() {
     const form = event.currentTarget;
     const formData = new FormData(form);
     try {
-      await loginWithEmail(
+      const credential = await loginWithEmail(
         String(formData.get("loginCorreo") ?? ""),
         String(formData.get("loginContrasena") ?? ""),
       );
       form.reset();
-      window.location.hash = "#cliente-inicio";
+      window.location.hash = await getAccountHome(credential.user.uid);
     } catch (error) {
       setFeedback({
         type: "error",

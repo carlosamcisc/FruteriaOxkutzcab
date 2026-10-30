@@ -1,3 +1,4 @@
+import { VendedorHomePage } from "../pages/vendedor/VendedorHomePage";
 import type { ReactElement } from "react";
 import { InicioSesionPage } from "../pages/autenticacion/InicioSesionPage";
 import { RegistroClientePage } from "../pages/autenticacion/RegistroClientePage";
@@ -12,6 +13,7 @@ import { BienvenidaPage } from "../pages/publico/BienvenidaPage";
  * página de bienvenida.
  */
 export const routes: Record<string, () => ReactElement> = {
+  "#vendedor-inicio": () => <VendedorHomePage />,
   "#inicio-sesion": () => <InicioSesionPage />,
   "#seleccion-rol": () => <SeleccionRolPage />,
   "#registro-cliente": () => <RegistroClientePage />,

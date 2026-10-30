@@ -263,3 +263,10 @@ integran mediante Pull Request. `master` se reserva para versiones estables.
 Después de integrar la arquitectura y el modelo de Firestore, las siguientes
 ramas deben abordar autenticación, catálogo, inventario, cotizaciones y
 pedidos.
+## Panel del vendedor
+
+Disponible en `#vendedor-inicio` y desde **Mi negocio** en el panel del comprador.
+Incluye catálogo editable para vendedores activos y consulta en tiempo real de
+cotizaciones y pedidos propios. Las cuentas pendientes o suspendidas muestran su
+estado y no pueden publicar productos. Consulta los requisitos de aprobación y
+publicación de reglas en [el modelo de Firebase](docs/firebase-data-model.md#panel-del-vendedor).
