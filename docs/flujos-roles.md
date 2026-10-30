@@ -20,7 +20,7 @@ la habilitación del vendedor proviene de `vendedores/{uid}`.
 - Los perfiles de vendedor se observan en vivo: un negocio suspendido desaparece
   del catálogo abierto. El catálogo consulta productos por vendedor activo y las
   reglas impiden al comprador leer productos de negocios suspendidos. El dueño
-  conserva acceso a sus propios productos. El servidor verifica otra vez el
+  conserva acceso a sus propios productos. Las reglas verifican otra vez el
   estado comercial al cotizar y aceptar.
 
 ## Cotizaciones, pedidos e inventario
@@ -33,7 +33,7 @@ con varios productos ni pagos electrónicos.
    `solicitarCotizacion` consulta el precio real y verifica vendedor activo,
    publicación, mínimo, existencias y que no sea una compra al propio negocio.
 2. El vendedor responde con un precio por presentación y una nota opcional.
-   La cotización vale 48 horas; puede rechazarse o cancelarse antes de aceptarse.
+   La cotización vale hasta 48 horas; puede rechazarse o cancelarse antes de aceptarse.
 3. Al aceptar, `actualizarCotizacion` verifica la vigencia y las existencias,
    calcula los totales y reserva inventario en una transacción. El ID del pedido
    es el de la cotización, por lo que repetir la aceptación no duplica pedidos.
@@ -53,26 +53,30 @@ Un formulario abierto antes de una reserva no puede sobrescribir esa reserva:
 debe cerrarse y abrirse nuevamente. La presentación no cambia después de crear
 el producto: para ofrecer otra presentación se crea otro producto.
 
-Las funciones están en `functions/`, usan Node.js 22 y se ejecutan en
-`us-central1`. Las reglas impiden escribir productos, pedidos, cotizaciones y
-movimientos directamente desde el SDK del navegador.
+Las operaciones están en `src/services/commerceTransactions.ts` y utilizan
+`runTransaction` del SDK web. El navegador propone los datos y Firestore decide
+si cada escritura es válida. Las reglas comprueban importes, participantes,
+transiciones, vencimiento y existencias. `getAfter()` exige que la reserva o
+devolución, el pedido y el movimiento se guarden de forma atómica. Los movimientos
+son inmutables y el producto enlaza el último mediante `ultimoMovimientoId`.
+Un lote incompleto o manipulado se rechaza aunque se envíe fuera de la interfaz.
 
 ## Fotografías
 
-Guarda el producto y vuelve a abrirlo para editar sus fotos. Admite hasta cinco
-JPG, PNG o WebP de hasta 5 MB cada una. Storage valida propietario, negocio
-activo, producto, tamaño y tipo; `actualizarImagenes` solo modifica las rutas,
-sin sobrescribir precio ni inventario. El catálogo muestra la primera imagen.
-Las imágenes de catálogo no deben contener información privada: sus URL de
-descarga pueden compartirse. Los archivos existentes no se borran al suspender.
+Guarda el producto y vuelve a abrirlo para agregar hasta cinco URLs HTTPS
+directas a imágenes externas. No hay carga de archivos, Firebase Storage ni
+bucket. El campo `rutasImagenes` mantiene su nombre por compatibilidad y ahora
+contiene esas URLs. Las reglas validan protocolo, longitud y duplicados; solo un
+vendedor activo modifica sus imágenes. El catálogo muestra la primera imagen y
+conserva la ilustración por categoría si el enlace no carga. Los enlaces dependen
+de la disponibilidad y permisos del sitio externo.
 
 ## Desarrollo y pruebas
 
-Instala las dependencias de ambos proyectos:
+Usa Node.js 22.18 o superior e instala las dependencias del proyecto:
 
 ```powershell
 npm.cmd ci
-npm.cmd ci --prefix functions
 ```
 
 Las pruebas necesitan Firebase CLI y Java 21 o superior disponible en `PATH`.
@@ -86,32 +90,44 @@ npm.cmd run test:flow
 
 `test:commerce` valida reglas y transacciones, incluida concurrencia, reservas,
 cancelaciones, permisos, suspensión y ediciones obsoletas. `test:flow` prueba
-el recorrido con Authentication, Firestore, Functions y Storage reales de los
+el recorrido con Authentication y Firestore reales de los
 emuladores. No sustituye una prueba visual de la interfaz.
 
 Para probar manualmente, usa `.env.local` con `VITE_USE_EMULATORS=true` y los
 valores de configuración del proyecto demo (API key ficticia `demo-key`,
 projectId `demo-fruteria-admin`, authDomain `demo-fruteria-admin.firebaseapp.com`,
-storageBucket `demo-fruteria-admin.appspot.com`, senderId `1234567890` y appId
+senderId `1234567890` y appId
 `1:1234567890:web:demo`). Inicia:
 
 ```powershell
-firebase emulators:start --only auth,firestore,functions,storage --project demo-fruteria-admin
+firebase emulators:start --only auth,firestore --project demo-fruteria-admin
 npm.cmd run dev
 ```
 
 ## Publicación
 
-Para producción, `VITE_USE_EMULATORS` debe ser `false` al compilar. Functions
-requiere que el proyecto Firebase tenga habilitada la facturación correspondiente.
-No se utilizan cuentas de servicio en la aplicación web.
-Publicar solamente Hosting o reglas deja incompleto el flujo: también deben
-publicarse las cinco funciones y las reglas de Storage. Durante la actualización
-conviene impedir sesiones de edición con la versión anterior del frontend.
+El proyecto utiliza Firebase Spark: Authentication con correo/contraseña,
+Firestore y Hosting. No requiere habilitar Blaze. Se deben respetar las cuotas
+gratuitas de cada servicio. Para producción, `VITE_USE_EMULATORS` debe ser `false`
+al compilar. Las cuentas de servicio se usan solo en scripts administrativos,
+nunca en la aplicación web. Durante la actualización conviene evitar sesiones de
+edición con una versión anterior del frontend.
+
+Para productos existentes sin historial, primero audita el saldo inicial. El
+script exige que no haya pedidos antiguos en curso ni movimientos sin enlace:
+
+```powershell
+$env:GOOGLE_APPLICATION_CREDENTIALS = "C:\ruta\cuenta-servicio.json"
+npm.cmd run migrate:spark-inventory -- --project=fruteria-oxkutzcab
+npm.cmd run migrate:spark-inventory -- --project=fruteria-oxkutzcab --apply
+```
+
+La migración crea movimientos deterministas y enlaza cada producto sin cambiar
+su precio, existencia o fecha de creación. Repetirla no duplica movimientos.
 
 ```powershell
 npm.cmd run build
-firebase deploy --only functions:commerce,firestore:rules,firestore:indexes,storage,hosting --project fruteria-oxkutzcab
+firebase deploy --only firestore:rules,firestore:indexes,hosting --project fruteria-oxkutzcab
 ```
 
 Antes de publicar, revisa los documentos antiguos: las solicitudes deben cumplir

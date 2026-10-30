@@ -3,7 +3,7 @@ import type { Producto } from "../../../shared/domain/models";
 import { saveProduct, type ConId, type ProductoInput } from "../services/vendedor";
 import { ProductImages } from './ProductImages';
 
-export function ProductForm({ uid, producto, onClose }: { uid: string; producto: ConId<Producto> | null; onClose: () => void }) {
+export function ProductForm({ producto, onClose }: { producto: ConId<Producto> | null; onClose: () => void }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [initialStock] = useState(producto?.cantidadDisponible);
@@ -46,6 +46,6 @@ export function ProductForm({ uid, producto, onClose }: { uid: string; producto:
         <div className="d-flex gap-2 mt-4"><button className="btn btn-primary" type="submit">{saving ? "Guardando…" : "Guardar producto"}</button><button className="btn btn-outline-secondary" type="button" onClick={onClose}>Cancelar</button></div>
       </fieldset>
     </form>
-    {producto ? <ProductImages uid={uid} product={producto} /> : <p className="form-text">Guarda el producto y ábrelo para editar sus fotografías.</p>}
+    {producto ? <ProductImages product={producto} /> : <p className="form-text">Guarda el producto y ábrelo para agregar URLs de imágenes.</p>}
   </section>;
 }

@@ -57,6 +57,173 @@ service cloud.firestore {
         && data.estado == 'pendiente' && data.enviadoEn == request.time
         && data.revisadoEn == null && data.revisadoPor == null && data.motivoRechazo == null;
     }
+    function activeSeller(uid) {
+      let seller = get(/databases/$(database)/documents/vendedores/$(uid)).data;
+      return seller.estado == 'activo' && seller.propietarioId == uid;
+    }
+    function participant(data) { return request.auth != null && request.auth.uid in [data.compradorId, data.vendedorId]; }
+    function note(value) { return value == null || (value is string && value.size() <= 1000); }
+    function imageUrl(value) { return value is string && value.size() <= 2048 && value.matches('https://[A-Za-z0-9.-]+(:[0-9]+)?([/?#][^\\s]*)?'); }
+    function images(values) {
+      return values is list && values.size() <= 5 && values.toSet().size() == values.size()
+        && (values.size() < 1 || imageUrl(values[0])) && (values.size() < 2 || imageUrl(values[1]))
+        && (values.size() < 3 || imageUrl(values[2])) && (values.size() < 4 || imageUrl(values[3]))
+        && (values.size() < 5 || imageUrl(values[4]));
+    }
+    function validProduct(data) {
+      return data.keys().hasAll(['vendedorId', 'nombre', 'descripcion', 'categoria', 'presentacion', 'cantidadMinimaPedido', 'cantidadDisponible', 'precioUnitarioCentavos', 'moneda', 'estado', 'rutasImagenes', 'creadoEn', 'actualizadoEn'])
+        && data.keys().hasOnly(['vendedorId', 'nombre', 'descripcion', 'categoria', 'presentacion', 'cantidadMinimaPedido', 'cantidadDisponible', 'precioUnitarioCentavos', 'moneda', 'estado', 'rutasImagenes', 'creadoEn', 'actualizadoEn', 'ultimoMovimientoId'])
+        && nonempty(data.nombre, 120) && data.descripcion is string && data.descripcion.size() <= 2000
+        && nonempty(data.categoria, 60) && nonempty(data.presentacion, 120)
+        && data.cantidadMinimaPedido is int && data.cantidadMinimaPedido >= 1 && data.cantidadMinimaPedido <= 1000000
+        && data.cantidadDisponible is int && data.cantidadDisponible >= 0 && data.cantidadDisponible <= 1000000000
+        && data.precioUnitarioCentavos is int && data.precioUnitarioCentavos >= 1 && data.precioUnitarioCentavos <= 999999999
+        && data.moneda == 'MXN' && data.estado in ['borrador', 'publicado', 'pausado'] && images(data.rutasImagenes)
+        && data.creadoEn is timestamp && data.actualizadoEn == request.time;
+    }
+    function stockMovement(productId, data, previousQuantity) {
+      let movementPath = /databases/$(database)/documents/movimientosInventario/$(data.ultimoMovimientoId);
+      let movement = getAfter(movementPath).data;
+      return nonempty(data.ultimoMovimientoId, 180) && !exists(movementPath)
+        && movement.productoId == productId && movement.vendedorId == data.vendedorId
+        && movement.actorId == request.auth.uid && movement.creadoEn == request.time
+        && movement.cantidad == data.cantidadDisponible - previousQuantity;
+    }
+    function tradeStock(productId, data) {
+      let movement = getAfter(/databases/$(database)/documents/movimientosInventario/$(data.ultimoMovimientoId)).data;
+      let orderPath = /databases/$(database)/documents/pedidos/$(movement.pedidoId);
+      let after = getAfter(orderPath).data;
+      return movement.pedidoId is string
+        && after.vendedorId == data.vendedorId && after.elementos[0].productoId == productId
+        && data.diff(resource.data).affectedKeys().hasOnly(['cantidadDisponible', 'ultimoMovimientoId', 'actualizadoEn'])
+        && ((!exists(orderPath) && isOwner(after.compradorId) && after.estado == 'pendienteConfirmacionVendedor'
+          && data.ultimoMovimientoId == 'reserva_' + movement.pedidoId
+          && movement.cantidad == -after.elementos[0].cantidad)
+        || (exists(orderPath) && participant(after) && after.estado == 'cancelado'
+          && get(orderPath).data.estado in ['pendienteConfirmacionVendedor', 'confirmado']
+          && data.ultimoMovimientoId == 'cancelacion_' + movement.pedidoId
+          && movement.cantidad == after.elementos[0].cantidad));
+    }
+    function productUpdate(productId) {
+      let data = request.resource.data;
+      let own = isOwner(resource.data.vendedorId) && activeSeller(resource.data.vendedorId);
+      let stockChanged = data.cantidadDisponible != resource.data.cantidadDisponible;
+      return validProduct(data) && data.vendedorId == resource.data.vendedorId
+        && data.creadoEn == resource.data.creadoEn && data.presentacion == resource.data.presentacion
+        && ((!stockChanged && own && data.get('ultimoMovimientoId', null) == resource.data.get('ultimoMovimientoId', null))
+        || (stockChanged && stockMovement(productId, data, resource.data.cantidadDisponible)
+          && ((own && getAfter(/databases/$(database)/documents/movimientosInventario/$(data.ultimoMovimientoId)).data.pedidoId == null)
+            || tradeStock(productId, data))));
+    }
+    function quoteShape(data) {
+      return data.keys().hasAll(['compradorId', 'vendedorId', 'elementos', 'estado', 'notaComprador', 'notaVendedor', 'venceEn', 'creadoEn', 'actualizadoEn'])
+        && data.keys().hasOnly(['compradorId', 'vendedorId', 'elementos', 'estado', 'notaComprador', 'notaVendedor', 'venceEn', 'creadoEn', 'actualizadoEn'])
+        && data.compradorId is string && data.vendedorId is string && data.compradorId != data.vendedorId
+        && data.elementos is list && data.elementos.size() == 1
+        && data.elementos[0].keys().hasAll(['productoId', 'nombreProducto', 'presentacion', 'cantidad', 'precioUnitarioSolicitadoCentavos', 'precioUnitarioCotizadoCentavos'])
+        && data.elementos[0].keys().hasOnly(['productoId', 'nombreProducto', 'presentacion', 'cantidad', 'precioUnitarioSolicitadoCentavos', 'precioUnitarioCotizadoCentavos'])
+        && note(data.notaComprador) && note(data.notaVendedor) && data.creadoEn is timestamp && data.actualizadoEn == request.time;
+    }
+    function newQuote() {
+      let data = request.resource.data;
+      let line = data.elementos[0];
+      let product = get(/databases/$(database)/documents/productos/$(line.productoId)).data;
+      return quoteShape(data) && isOwner(data.compradorId) && activeSeller(data.vendedorId)
+        && data.estado == 'solicitada' && data.creadoEn == request.time && data.venceEn == null && data.notaVendedor == null
+        && product.vendedorId == data.vendedorId && product.estado == 'publicado'
+        && line.nombreProducto == product.nombre && line.presentacion == product.presentacion
+        && line.cantidad is int && line.cantidad >= product.cantidadMinimaPedido && line.cantidad <= product.cantidadDisponible && line.cantidad <= 1000000
+        && line.precioUnitarioSolicitadoCentavos == product.precioUnitarioCentavos && line.precioUnitarioCotizadoCentavos == null;
+    }
+    function quoteResponse(data) {
+      let line = data.elementos[0];
+      return isOwner(resource.data.vendedorId) && activeSeller(resource.data.vendedorId)
+        && resource.data.estado == 'solicitada' && data.estado == 'cotizada'
+        && data.diff(resource.data).affectedKeys().hasOnly(['estado', 'elementos', 'notaVendedor', 'venceEn', 'actualizadoEn'])
+        && line.diff(resource.data.elementos[0]).affectedKeys().hasOnly(['precioUnitarioCotizadoCentavos'])
+        && line.precioUnitarioCotizadoCentavos is int && line.precioUnitarioCotizadoCentavos >= 1 && line.precioUnitarioCotizadoCentavos <= 999999999
+        && data.venceEn is timestamp && data.venceEn > request.time && data.venceEn <= request.time + duration.value(48, 'h');
+    }
+    function quoteUpdate(quoteId) {
+      let data = request.resource.data;
+      let before = resource.data;
+      let orderPath = /databases/$(database)/documents/pedidos/$(quoteId);
+      let stateOnly = data.diff(before).affectedKeys().hasOnly(['estado', 'actualizadoEn']);
+      return participant(before) && quoteShape(data)
+        && (quoteResponse(data)
+        || (stateOnly && before.estado in ['solicitada', 'cotizada']
+          && ((data.estado == 'cancelada' && isOwner(before.compradorId))
+            || (data.estado == 'rechazada' && (isOwner(before.vendedorId) || before.estado == 'cotizada'))
+            || (data.estado == 'vencida' && before.estado == 'cotizada' && before.venceEn <= request.time)))
+        || (stateOnly && isOwner(before.compradorId) && before.estado == 'cotizada' && data.estado == 'aceptada'
+          && before.venceEn > request.time && activeSeller(before.vendedorId) && !exists(orderPath)
+          && getAfter(orderPath).data.cotizacionId == quoteId && getAfter(orderPath).data.creadoEn == request.time));
+    }
+    function newOrder(orderId) {
+      let data = request.resource.data;
+      let quotePath = /databases/$(database)/documents/cotizaciones/$(orderId);
+      let quote = get(quotePath).data;
+      let quoted = quote.elementos[0];
+      let line = data.elementos[0];
+      let productPath = /databases/$(database)/documents/productos/$(quoted.productoId);
+      let product = get(productPath).data;
+      return data.keys().hasAll(['cotizacionId', 'compradorId', 'vendedorId', 'elementos', 'subtotalCentavos', 'moneda', 'estado', 'estadoPagoEfectivo', 'efectivoRecibidoEn', 'creadoEn', 'actualizadoEn'])
+        && data.keys().hasOnly(['cotizacionId', 'compradorId', 'vendedorId', 'elementos', 'subtotalCentavos', 'moneda', 'estado', 'estadoPagoEfectivo', 'efectivoRecibidoEn', 'creadoEn', 'actualizadoEn'])
+        && isOwner(data.compradorId) && data.compradorId == quote.compradorId && data.vendedorId == quote.vendedorId
+        && data.cotizacionId == orderId && quote.estado == 'cotizada' && quote.venceEn > request.time && activeSeller(quote.vendedorId)
+        && getAfter(quotePath).data.estado == 'aceptada' && getAfter(quotePath).data.actualizadoEn == request.time
+        && data.elementos is list && data.elementos.size() == 1
+        && line.keys().hasAll(['productoId', 'nombreProducto', 'presentacion', 'cantidad', 'precioUnitarioCentavos', 'totalLineaCentavos'])
+        && line.keys().hasOnly(['productoId', 'nombreProducto', 'presentacion', 'cantidad', 'precioUnitarioCentavos', 'totalLineaCentavos'])
+        && line.productoId == quoted.productoId && line.nombreProducto == quoted.nombreProducto && line.presentacion == quoted.presentacion
+        && line.cantidad == quoted.cantidad && line.precioUnitarioCentavos == quoted.precioUnitarioCotizadoCentavos
+        && line.totalLineaCentavos == line.cantidad * line.precioUnitarioCentavos && data.subtotalCentavos == line.totalLineaCentavos
+        && product.vendedorId == quote.vendedorId && product.estado == 'publicado' && product.presentacion == line.presentacion
+        && line.cantidad >= product.cantidadMinimaPedido && product.cantidadDisponible >= line.cantidad
+        && getAfter(productPath).data.cantidadDisponible == product.cantidadDisponible - line.cantidad
+        && getAfter(productPath).data.ultimoMovimientoId == 'reserva_' + orderId
+        && data.moneda == 'MXN' && data.estado == 'pendienteConfirmacionVendedor' && data.estadoPagoEfectivo == 'pendiente'
+        && data.efectivoRecibidoEn == null && data.creadoEn == request.time && data.actualizadoEn == request.time;
+    }
+    function cancelOrder(orderId, data) {
+      let before = resource.data;
+      let line = before.elementos[0];
+      let productPath = /databases/$(database)/documents/productos/$(line.productoId);
+      return data.estado == 'cancelado' && before.estadoPagoEfectivo == 'pendiente'
+        && ((isOwner(before.compradorId) && before.estado == 'pendienteConfirmacionVendedor')
+          || (isOwner(before.vendedorId) && before.estado in ['pendienteConfirmacionVendedor', 'confirmado']))
+        && getAfter(productPath).data.cantidadDisponible == get(productPath).data.cantidadDisponible + line.cantidad
+        && getAfter(productPath).data.ultimoMovimientoId == 'cancelacion_' + orderId;
+    }
+    function orderUpdate(orderId) {
+      let data = request.resource.data;
+      let before = resource.data;
+      let seller = isOwner(before.vendedorId);
+      return participant(before) && data.actualizadoEn == request.time
+        && ((data.diff(before).affectedKeys().hasOnly(['estado', 'actualizadoEn'])
+          && (cancelOrder(orderId, data) || (seller && ((before.estado == 'pendienteConfirmacionVendedor' && data.estado == 'confirmado')
+            || (before.estado == 'confirmado' && data.estado == 'preparando')
+            || (before.estado == 'preparando' && data.estado == 'listo') || (before.estado == 'listo' && data.estado == 'entregado')))))
+        || (seller && before.estado == 'entregado' && before.estadoPagoEfectivo == 'pendiente'
+          && data.diff(before).affectedKeys().hasOnly(['estadoPagoEfectivo', 'efectivoRecibidoEn', 'actualizadoEn'])
+          && data.estadoPagoEfectivo == 'recibido' && data.efectivoRecibidoEn == request.time));
+    }
+    function newMovement(movementId) {
+      let data = request.resource.data;
+      let productPath = /databases/$(database)/documents/productos/$(data.productoId);
+      let after = getAfter(productPath).data;
+      let previousQuantity = exists(productPath) ? get(productPath).data.cantidadDisponible : 0;
+      return data.keys().hasAll(['productoId', 'vendedorId', 'actorId', 'cantidad', 'tipo', 'motivo', 'pedidoId', 'creadoEn'])
+        && data.keys().hasOnly(['productoId', 'vendedorId', 'actorId', 'cantidad', 'tipo', 'motivo', 'pedidoId', 'creadoEn'])
+        && isOwner(data.actorId) && data.creadoEn == request.time && nonempty(data.motivo, 1000)
+        && after.ultimoMovimientoId == movementId && after.actualizadoEn == request.time
+        && (!exists(productPath) || get(productPath).data.get('ultimoMovimientoId', null) != movementId)
+        && after.vendedorId == data.vendedorId && data.cantidad is int && data.cantidad == after.cantidadDisponible - previousQuantity
+        && ((data.pedidoId == null && isOwner(data.vendedorId) && activeSeller(data.vendedorId)
+          && data.tipo == (data.cantidad > 0 ? 'entrada' : 'ajuste'))
+        || (data.pedidoId is string && data.tipo == (data.cantidad < 0 ? 'venta' : 'ajuste')
+          && movementId == (data.cantidad < 0 ? 'reserva_' : 'cancelacion_') + data.pedidoId));
+    }
     match /usuarios/{uid} {
       allow create: if isOwner(uid) && validUser(request.resource.data) && request.resource.data.creadoEn == request.time && request.resource.data.correo == request.auth.token.email;
       allow read: if isOwner(uid);
@@ -79,24 +246,36 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /productos/{id} {
-      allow read: if request.auth != null && (resource.data.vendedorId == request.auth.uid
+      allow get: if request.auth != null && (!exists(/databases/$(database)/documents/productos/$(id)) || resource.data.vendedorId == request.auth.uid
+        || (resource.data.estado == 'publicado' && activeSeller(resource.data.vendedorId)));
+      allow list: if request.auth != null && (resource.data.vendedorId == request.auth.uid
         || (resource.data.estado == 'publicado'
           && get(/databases/$(database)/documents/vendedores/$(resource.data.vendedorId)).data.estado == 'activo'));
-      // Only server functions write products and inventory atomically.
-      allow create, update: if false;
+      allow create: if isOwner(request.resource.data.vendedorId) && activeSeller(request.auth.uid)
+        && validProduct(request.resource.data) && request.resource.data.creadoEn == request.time
+        && stockMovement(id, request.resource.data, 0)
+        && getAfter(/databases/$(database)/documents/movimientosInventario/$(request.resource.data.ultimoMovimientoId)).data.pedidoId == null;
+      allow update: if request.auth != null && productUpdate(id);
       allow delete: if false;
     }
     match /cotizaciones/{id} {
       allow read: if request.auth != null && (resource.data.compradorId == request.auth.uid || resource.data.vendedorId == request.auth.uid);
-      allow write: if false;
+      allow create: if request.auth != null && newQuote();
+      allow update: if request.auth != null && quoteUpdate(id);
+      allow delete: if false;
     }
     match /pedidos/{id} {
-      allow read: if request.auth != null && (resource.data.compradorId == request.auth.uid || resource.data.vendedorId == request.auth.uid);
-      allow write: if false;
+      allow get: if request.auth != null && (exists(/databases/$(database)/documents/pedidos/$(id))
+        ? participant(resource.data) : participant(get(/databases/$(database)/documents/cotizaciones/$(id)).data));
+      allow list: if participant(resource.data);
+      allow create: if request.auth != null && newOrder(id);
+      allow update: if request.auth != null && orderUpdate(id);
+      allow delete: if false;
     }
     match /movimientosInventario/{id} {
       allow read: if request.auth != null && (resource.data.vendedorId == request.auth.uid || isAdmin());
-      allow write: if false;
+      allow create: if request.auth != null && newMovement(id);
+      allow update, delete: if false;
     }
     match /{document=**} { allow read, write: if false; }
   }

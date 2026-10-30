@@ -1,40 +1,34 @@
 import { useState } from 'react';
-import { ref, uploadBytes, deleteObject } from 'firebase/storage';
 import type { Producto } from '../../../shared/domain/models';
-import { getStorageService } from '../../../services/storage';
-import { callCommerce } from '../../../services/functions';
+import { callCommerce } from '../../../services/commerce';
+import { isImageUrl } from '../../../services/commerceTransactions';
 
-export function ProductImages({ uid, product }: { uid: string; product: Producto & { id: string } }) {
+export function ProductImages({ product }: { product: Producto & { id: string } }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  async function upload(file: File) {
-    const extension = ({ 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' } as Record<string, string>)[file.type];
-    if (!extension || file.size > 5 * 1024 * 1024 || product.rutasImagenes.length >= 5) {
-      setError('Usa JPG, PNG o WebP de hasta 5 MB. Máximo 5 imágenes por producto.'); return;
-    }
+  const [url, setUrl] = useState('');
+  async function save(paths: string[]) {
     setBusy(true); setError('');
-    const path = `productos/${uid}/${product.id}/${crypto.randomUUID()}.${extension}`;
-    const image = ref(getStorageService(), path);
     try {
-      await uploadBytes(image, file, { contentType: file.type });
-      await callCommerce('actualizarImagenes', { id: product.id, expectedPaths: product.rutasImagenes, paths: [...product.rutasImagenes, path] });
+      await callCommerce('actualizarImagenes', { id: product.id, expectedPaths: product.rutasImagenes, paths });
+      setUrl('');
     } catch (caught) {
-      await deleteObject(image).catch(() => undefined);
-      setError(caught instanceof Error ? caught.message : 'No se pudo guardar la imagen.');
+      setError(caught instanceof Error ? caught.message : 'No se pudo guardar la URL.');
     } finally { setBusy(false); }
   }
-  return <section className="mt-4"><h4>Fotografías</h4><p className="form-text">Hasta 5 imágenes JPG, PNG o WebP de 5 MB cada una.</p>
-    <input className="form-control" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Subir fotografía" disabled={busy || product.rutasImagenes.length >= 5} onChange={event => {
-      const file = event.target.files?.[0]; if (file) void upload(file); event.target.value = '';
-    }} />
-    {product.rutasImagenes.map((path, index) => <div className="d-flex gap-2 align-items-center mt-2" key={path}><span>Fotografía {index + 1}</span><button type="button" className="btn btn-outline-danger btn-sm" disabled={busy} onClick={async () => {
-      setBusy(true); setError('');
-      try {
-        await callCommerce('actualizarImagenes', { id: product.id, expectedPaths: product.rutasImagenes, paths: product.rutasImagenes.filter(item => item !== path) });
-        await deleteObject(ref(getStorageService(), path)).catch(() => undefined);
-      } catch (caught) { setError(caught instanceof Error ? caught.message : 'No se pudo quitar la imagen.'); }
-      finally { setBusy(false); }
-    }}>Quitar</button></div>)}
-    {busy && <p role="status">Guardando fotografía…</p>}{error && <p role="alert" className="text-danger">{error}</p>}
+  return <section className="mt-4"><h4>Imágenes por URL</h4><p className="form-text">Pega el enlace HTTPS directo a una imagen de internet. Máximo cinco enlaces; no se cargan archivos.</p>
+    <form onSubmit={event => {
+      event.preventDefault(); const value = url.trim();
+      if (!isImageUrl(value) || product.rutasImagenes.includes(value)) { setError('Usa una URL HTTPS válida que no esté repetida.'); return; }
+      void save([...product.rutasImagenes, value]);
+    }}><fieldset disabled={busy || product.rutasImagenes.length >= 5}>
+      <label className="form-label" htmlFor="product-image-url">URL de la imagen</label>
+      <input id="product-image-url" className="form-control" type="url" required maxLength={2048} placeholder="https://ejemplo.com/fruta.jpg" value={url} onChange={event => setUrl(event.target.value)} />
+      <button className="btn btn-outline-success btn-sm mt-2" type="submit">Agregar URL</button>
+    </fieldset></form>
+    {product.rutasImagenes.map((path, index) => <div className="d-flex gap-2 align-items-center mt-2" key={path}>
+      <span className="text-break">Imagen {index + 1}: {path}</span><button type="button" className="btn btn-outline-danger btn-sm" disabled={busy} onClick={() => void save(product.rutasImagenes.filter(item => item !== path))}>Quitar</button>
+    </div>)}
+    {busy && <p role="status">Guardando enlaces…</p>}{error && <p role="alert" className="text-danger">{error}</p>}
   </section>;
 }

@@ -66,6 +66,7 @@ export interface Producto {
   moneda: "MXN";
   estado: EstadoProducto;
   rutasImagenes: string[];
+  ultimoMovimientoId?: string | null;
   creadoEn: Timestamp;
   actualizadoEn: Timestamp;
 }

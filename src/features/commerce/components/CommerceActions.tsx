@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import type { Cotizacion, Pedido } from '../../../shared/domain/models';
-import { callCommerce } from '../../../services/functions';
+import { callCommerce } from '../../../services/commerce';
 
 export function ActionForm({ children, run, label }: { children?: ReactNode; run: (data: FormData) => Promise<unknown>; label: string }) {
   const [busy, setBusy] = useState(false);
@@ -30,7 +30,7 @@ export function QuoteActions({ quote, seller = false, active = true }: { quote: 
     {quote.elementos.map((line, index) => <p className="mb-1" key={index}>{line.cantidad} × {line.presentacion} · {money(line.precioUnitarioCotizadoCentavos ?? line.precioUnitarioSolicitadoCentavos)} por presentación</p>)}
     {quote.notaVendedor && <p>Respuesta: {quote.notaVendedor}</p>}
     {quote.venceEn && <small>{expired ? 'Cotización vencida' : `Válida hasta ${quote.venceEn.toDate().toLocaleString('es-MX')}`}</small>}
-    {seller && active && quote.estado === 'solicitada' && <ActionForm label="Enviar cotización (válida por 48 horas)" run={data => {
+    {seller && active && quote.estado === 'solicitada' && <ActionForm label="Enviar cotización (válida hasta 48 horas)" run={data => {
       const value = String(data.get('price'));
       if (!/^\d+(\.\d{1,2})?$/.test(value)) throw new Error('Escribe un precio con hasta dos decimales.');
       const [whole, cents = ''] = value.split('.');

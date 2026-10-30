@@ -112,7 +112,7 @@ test('solicitudes sin esquema o con revisión falsificada se rechazan', async ()
   await assertSucceeds(setDoc(ref, valid));
 });
 
-test('cliente no escribe productos, inventario ni pedidos directamente', async () => {
+test('documentos comerciales incompletos se rechazan', async () => {
   for (const name of ['productos', 'movimientosInventario', 'pedidos', 'cotizaciones']) {
     await assertFails(setDoc(doc(customer(), `${name}/fake`), { vendedorId: uid, compradorId: uid }));
   }

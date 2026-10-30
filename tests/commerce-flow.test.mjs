@@ -3,28 +3,25 @@ import assert from 'node:assert/strict';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, connectAuthEmulator, createUserWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator, doc, setDoc, writeBatch, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore';
-import { getFunctions, connectFunctionsEmulator, httpsCallable } from 'firebase/functions';
-import { getStorage, connectStorageEmulator, ref, uploadBytes, getBytes } from 'firebase/storage';
+import { saveProduct, requestQuote, quoteAction, orderAction, updateImages } from '../src/services/commerceTransactions.ts';
 import { initializeApp as initializeAdmin, deleteApp as deleteAdmin } from 'firebase-admin/app';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 
 const projectId = 'demo-fruteria-admin';
 const apps = [];
 async function account(name) {
-  const app = initializeApp({ projectId, apiKey: 'demo-key', storageBucket: `${projectId}.appspot.com` }, `${name}-${Date.now()}`);
+  const app = initializeApp({ projectId, apiKey: 'demo-key' }, `${name}-${Date.now()}`);
   apps.push(app);
   const auth = getAuth(app); connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
   const db = getFirestore(app); connectFirestoreEmulator(db, '127.0.0.1', 8080);
-  const functions = getFunctions(app); connectFunctionsEmulator(functions, '127.0.0.1', 5001);
-  const storage = getStorage(app); connectStorageEmulator(storage, '127.0.0.1', 9199);
-  if (name === 'buyer') await assert.rejects(httpsCallable(functions, 'solicitarCotizacion')({ productId: 'missing', quantity: 2 }), error => error.code === 'functions/unauthenticated');
   const user = (await createUserWithEmailAndPassword(auth, `${name}-${Date.now()}@example.test`, 'test-password-123')).user;
   await setDoc(doc(db, `usuarios/${user.uid}`), { nombre: name, correo: user.email, telefono: null, creadoEn: serverTimestamp(), actualizadoEn: serverTimestamp() });
-  return { user, db, storage, call: (fn, data) => httpsCallable(functions, fn)(data).then(result => result.data) };
+  const operations = { guardarProducto: saveProduct, solicitarCotizacion: requestQuote, actualizarCotizacion: quoteAction, actualizarPedido: orderAction, actualizarImagenes: updateImages };
+  return { user, db, call: (name, data) => operations[name](db, user.uid, data) };
 }
 
-test('flujo real con Auth, reglas, Functions y Storage: alta, aprobación, compra y entrega', { timeout: 120000 }, async () => {
-  if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_AUTH_EMULATOR_HOST || !process.env.FIREBASE_STORAGE_EMULATOR_HOST) throw new Error('Ejecuta con los cuatro emuladores locales.');
+test('flujo Spark con Auth y reglas: alta, aprobación, URL externa, compra y entrega', { timeout: 120000 }, async () => {
+  if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_AUTH_EMULATOR_HOST) throw new Error('Ejecuta con los emuladores de Auth y Firestore.');
   const adminApp = initializeAdmin({ projectId }, 'flow-admin');
   try {
     const seller = await account('seller'), buyer = await account('buyer'), admin = await account('admin');
@@ -46,14 +43,10 @@ test('flujo real con Auth, reglas, Functions y Storage: alta, aprobación, compr
     const product = { nombre: 'Naranja', descripcion: 'Fresca', categoria: 'Frutas', presentacion: 'Caja de 20 kg', cantidadDisponible: 10, cantidadMinimaPedido: 2, precioUnitarioCentavos: 25000, estado: 'publicado' };
     await assert.rejects(buyer.call('guardarProducto', product));
     const { id: productId } = await seller.call('guardarProducto', product);
-    const path = `productos/${seller.user.uid}/${productId}/test.jpg`;
-    const jpeg = new Uint8Array([255, 216, 255, 224]);
-    await assert.rejects(uploadBytes(ref(buyer.storage, path), jpeg, { contentType: 'image/jpeg' }));
-    await assert.rejects(uploadBytes(ref(seller.storage, path.replace('.jpg', '.txt')), jpeg, { contentType: 'text/plain' }));
-    await assert.rejects(uploadBytes(ref(seller.storage, path), new Uint8Array(5 * 1024 * 1024 + 1), { contentType: 'image/jpeg' }));
-    await uploadBytes(ref(seller.storage, path), jpeg, { contentType: 'image/jpeg' });
+    const path = 'https://images.example.com/orange.jpg';
+    await assert.rejects(buyer.call('actualizarImagenes', { id: productId, paths: [path], expectedPaths: [] }));
     await seller.call('actualizarImagenes', { id: productId, paths: [path], expectedPaths: [] });
-    assert.equal((await getBytes(ref(buyer.storage, path))).byteLength, jpeg.byteLength);
+    assert.deepEqual((await getDoc(doc(buyer.db, `productos/${productId}`))).data().rutasImagenes, [path]);
     const { id: quoteId } = await buyer.call('solicitarCotizacion', { productId, quantity: 2, note: 'Entrega local' });
     await assert.rejects(buyer.call('actualizarCotizacion', { id: quoteId, action: 'cotizar', price: 1 }));
     await seller.call('actualizarCotizacion', { id: quoteId, action: 'cotizar', price: 24000 });

@@ -12,16 +12,14 @@ Consulta los [flujos actuales por rol, pruebas y publicación](docs/flujos-roles
 - **React + TypeScript:** interfaz y módulos de la aplicación.
 - **Vite:** servidor de desarrollo y compilación de archivos estáticos.
 - **Bootstrap 5:** estilos y componentes adaptables.
-- **Firebase:** Authentication para cuentas, Firestore para datos, Storage para
-  imágenes y Hosting para publicar la aplicación.
-- **Cloud Functions:** valida productos, cotizaciones, pedidos e inventario en
-  el servidor.
+- **Firebase Spark:** Authentication para cuentas, Firestore para datos y Hosting
+  para publicar la aplicación. Las imágenes se muestran mediante URLs externas.
 
 La interfaz no es la autoridad para roles, precios, totales ni existencias.
 Firestore valida perfiles y solicitudes por propietario, y las operaciones
-administrativas por custom claim. Las funciones autenticadas escriben los datos
-comerciales. Storage admite fotos de productos con límites por propietario,
-formato y tamaño.
+administrativas por custom claim. Las transacciones del SDK escriben los datos
+comerciales y las reglas verifican precios, totales, estados y cambios de
+inventario con `getAfter()`. No se utilizan Cloud Functions ni Firebase Storage.
 La configuración web de Firebase no sustituye esas reglas ni debe tratarse
 como autorización.
 
@@ -59,7 +57,7 @@ duplicados fuera de la aplicación React.
 
 ## Requisitos
 
-- Node.js 20.19+ o 22.12+.
+- Node.js 22.18+ para compilación y pruebas con los servicios TypeScript.
 - npm, incluido con Node.js.
 - Firebase CLI para autenticación, emuladores y despliegue.
 - Acceso al proyecto Firebase `fruteria-oxkutzcab`.
@@ -71,7 +69,6 @@ Ejecuta todos los comandos desde la raíz del repositorio:
 ```powershell
 # Instalar dependencias del proyecto
 npm install
-npm install --prefix functions
 
 # Iniciar el servidor de desarrollo
 npm run dev
@@ -133,7 +130,7 @@ que estás en el repositorio y proyecto correctos.
 
 ## Emuladores de Firebase
 
-`firebase.json` configura emuladores para Authentication, Firestore, Storage,
+`firebase.json` configura emuladores para Authentication, Firestore,
 Hosting y la interfaz de administración local. Para iniciar los servicios:
 
 ```powershell
@@ -143,7 +140,7 @@ firebase emulators:start
 Para iniciar solo los servicios necesarios:
 
 ```powershell
-firebase emulators:start --only auth,firestore,functions,storage
+firebase emulators:start --only auth,firestore
 ```
 
 Direcciones configuradas:
@@ -151,9 +148,7 @@ Direcciones configuradas:
 | Servicio | Dirección |
 | --- | --- |
 | Authentication | `http://localhost:9099` |
-| Functions | `http://localhost:5001` |
 | Firestore | `http://localhost:8080` |
-| Storage | `http://localhost:9199` |
 | Hosting | `http://localhost:5000` |
 | Firebase Emulator UI | `http://localhost:4000` |
 
@@ -192,18 +187,18 @@ Las reglas e índices se pueden publicar sin desplegar la interfaz:
 firebase deploy --only firestore:rules,firestore:indexes
 ```
 
-Después de publicar las funciones y reglas indicadas en [flujos por rol](docs/flujos-roles.md), puedes actualizar solo la interfaz:
+Después de publicar las reglas indicadas en [flujos por rol](docs/flujos-roles.md), puedes actualizar solo la interfaz:
 
 ```powershell
 npm run build
 firebase deploy --only hosting
 ```
 
-Para publicar funciones, reglas, índices, Storage y Hosting en una sola operación:
+Para publicar reglas, índices y Hosting en una sola operación, conservando Spark:
 
 ```powershell
 npm run build
-firebase deploy --only functions:commerce,firestore:rules,firestore:indexes,storage,hosting
+firebase deploy --only firestore:rules,firestore:indexes,hosting
 ```
 
 No despliegues reglas permisivas como `allow read, write: if true`. Las reglas

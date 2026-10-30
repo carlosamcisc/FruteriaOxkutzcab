@@ -36,16 +36,17 @@ sirven como contrato de la aplicación; no sustituyen las reglas de seguridad.
 - El pago se realiza en efectivo al vendedor. `estadoPagoEfectivo` registra que
   el vendedor declara haber recibido el efectivo; la plataforma no procesa ni
   verifica físicamente el pago.
-- La aceptación reserva existencias y crea el pedido en una transacción de
-  servidor. Las cancelaciones permitidas devuelven la reserva una sola vez.
+- La aceptación reserva existencias y crea el pedido en una transacción del SDK
+  validada por reglas. Las cancelaciones permitidas devuelven la reserva una vez.
 
 ## Operaciones confiables
 
-El cliente no debe decidir roles, aprobar vendedores, cambiar propietarios,
-aceptar cotizaciones en nombre de otra parte, fijar el total de un pedido,
-marcar movimientos de inventario ni descontar existencias. Estas operaciones
-requieren Cloud Functions con Firebase Admin SDK u otro entorno confiable. El
-uso de Functions no implica mantener un servidor propio.
+Las reglas son la autoridad para roles, propietarios, precios, totales y estados.
+La interfaz propone transacciones; Firestore valida el estado anterior y posterior
+mediante `get()` y `getAfter()`. Cada reserva y devolución exige simultáneamente
+el pedido y el movimiento correspondiente. Los movimientos son inmutables y
+`productos.ultimoMovimientoId` enlaza el ajuste que produjo las existencias actuales.
+El proyecto funciona en Spark sin desplegar Cloud Functions ni utilizar Storage.
 
 ## Índices
 
@@ -61,9 +62,10 @@ consultas reales de la interfaz.
 ## Seguridad y despliegue
 
 Las reglas validan perfiles, solicitudes y revisión administrativa. Los datos
-comerciales se escriben mediante funciones autenticadas y transacciones de
-servidor; los participantes consultan sus pedidos y cotizaciones. Storage admite
-fotografías por propietario con límites de tamaño y formato.
+comerciales se escriben mediante transacciones autenticadas validadas por reglas;
+los participantes consultan sus pedidos y cotizaciones. `rutasImagenes` conserva
+su nombre por compatibilidad y contiene hasta cinco URLs HTTPS externas. No se
+cargan archivos y no se requiere configurar un bucket.
 
 El proyecto está vinculado a `fruteria-oxkutzcab`. Consulta [flujos por rol](flujos-roles.md)
 para los permisos actuales, pruebas con proyecto demo y publicación completa.

@@ -1,6 +1,6 @@
 import { collection, doc, onSnapshot, query, where } from "firebase/firestore";
 import { getFirestoreDb } from "../../../services/firestore";
-import { callCommerce } from '../../../services/functions';
+import { callCommerce } from '../../../services/commerce';
 import { collections, documentPaths } from "../../../shared/domain/paths";
 import type { Cotizacion, Pedido, PerfilVendedor, Producto, SolicitudVendedor } from "../../../shared/domain/models";
 

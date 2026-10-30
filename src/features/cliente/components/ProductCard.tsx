@@ -1,7 +1,7 @@
 import type { ProductoCatalogo } from "../hooks/useClienteInicio";
 import { emojiForCategory, formatCentavos } from "../utils/formatters";
 import { ActionForm } from '../../commerce/components/CommerceActions';
-import { callCommerce } from '../../../services/functions';
+import { callCommerce } from '../../../services/commerce';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { ProductPhoto } from '../../../shared/components/ProductPhoto';
 

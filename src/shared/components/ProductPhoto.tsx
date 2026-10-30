@@ -1,13 +1,7 @@
-import { useEffect, useState } from 'react';
-import { getDownloadURL, ref } from 'firebase/storage';
-import { getStorageService } from '../../services/storage';
+import { useState } from 'react';
+import { isImageUrl } from '../../services/commerceTransactions';
 
 export function ProductPhoto({ path, name }: { path?: string; name: string }) {
-  const [url, setUrl] = useState('');
-  useEffect(() => {
-    let current = true; setUrl('');
-    if (path) getDownloadURL(ref(getStorageService(), path)).then(value => { if (current) setUrl(value); }).catch(() => undefined);
-    return () => { current = false; };
-  }, [path]);
-  return url ? <img src={url} alt={name} loading="lazy" style={{ width: '100%', height: 180, objectFit: 'cover' }} /> : null;
+  const [failedPath, setFailedPath] = useState('');
+  return path && isImageUrl(path) && path !== failedPath ? <img src={path} alt={name} loading="lazy" referrerPolicy="no-referrer" onError={() => setFailedPath(path)} style={{ width: '100%', height: 180, objectFit: 'cover' }} /> : null;
 }
