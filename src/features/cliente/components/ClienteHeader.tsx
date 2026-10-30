@@ -44,6 +44,7 @@ export function ClienteHeader({ nombre, correo, onNavigate, onLogout }: ClienteH
                   Mi actividad
                 </button>
               </li>
+              <li className="nav-item"><a className="nav-link" href="#vendedor-inicio">Mi negocio</a></li>
               <li className="nav-item dropdown">
                 <button
                   className="client-user-toggle dropdown-toggle"

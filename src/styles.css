@@ -1328,3 +1328,12 @@ a {
     width: 100%;
   }
 }
+
+.seller-business { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; padding: 1.25rem; background: white; border: 1px solid var(--line); border-radius: 1rem; }
+.seller-business > i { color: var(--leaf); font-size: 1.8rem; }
+.seller-business .status-pill { margin-left: auto; }
+.seller-search { max-width: 350px; }
+.seller-lines { padding-left: 1.25rem; margin-top: 1rem; }
+.seller-lines li { margin-bottom: .5rem; }
+.seller-page .client-stat strong { overflow-wrap: anywhere; font-size: clamp(1.15rem, 2vw, 1.6rem); }
+.seller-page .activity-card h3 { overflow-wrap: anywhere; }

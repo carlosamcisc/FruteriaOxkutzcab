@@ -95,3 +95,35 @@ npm run migrate:firestore-schema
 
 La cuenta de servicio se obtiene desde Firebase Console y no debe subirse al
 repositorio. El script migra también los estados a sus valores en español.
+
+## Panel del vendedor
+
+La ruta `#vendedor-inicio` consulta el perfil y la solicitud del usuario autenticado.
+Al iniciar sesión se dirige a esta ruta si existe su perfil o solicitud de vendedor.
+Desde el inicio del comprador también se accede mediante **Mi negocio**.
+
+Los vendedores activos pueden crear y editar sus productos (precio en centavos
+MXN, presentación, mínimo de compra, existencia publicada y visibilidad).
+Los cambios se guardan en Firestore y se reciben en tiempo real, sin datos de
+muestra. Pausar un producto permite retirarlo del catálogo sin borrar su historial.
+La existencia publicada es una declaración del vendedor, no una reserva ni un
+movimiento de inventario asociado a pedidos.
+
+Las cotizaciones y los pedidos se consultan filtrando por `vendedorId`; el panel
+no modifica sus estados ni descuenta inventario. Esas operaciones siguen
+reservadas al servidor. No se incluyen imágenes nuevas en este flujo.
+
+Una solicitud pendiente no concede acceso al catálogo del vendedor. La aprobación
+requiere que un administrador cree `vendedores/{uid}` con el esquema de
+`PerfilVendedor`, `propietarioId` igual al UID y `estado: "activo"`. El navegador
+no puede aprobar solicitudes ni crear ese perfil. Una cuenta suspendida puede
+consultar sus datos, pero no modificar productos.
+
+Para usar el panel contra Firebase real, deben estar publicadas las reglas de
+este cambio. Antes del despliegue, verificar en emuladores que un vendedor activo
+puede escribir solo sus productos, que clientes y cuentas suspendidas no pueden
+hacerlo, y que los pedidos y cotizaciones de otros usuarios permanecen privados.
+
+```powershell
+firebase deploy --only firestore:rules --project fruteria-oxkutzcab
+```

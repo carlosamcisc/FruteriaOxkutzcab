@@ -1,57 +1,61 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /usuarios/{userId} {
-      allow create: if isOwner(userId)
-        && request.resource.data.correo == request.auth.token.email;
-      allow read: if isOwner(userId);
-      allow update: if isOwner(userId)
-        && request.resource.data.correo == resource.data.correo
-        && request.resource.data.creadoEn == resource.data.creadoEn;
+    function isOwner(uid) { return request.auth != null && request.auth.uid == uid; }
+    function activeSeller() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/vendedores/$(request.auth.uid))
+        && get(/databases/$(database)/documents/vendedores/$(request.auth.uid)).data.estado == 'activo'
+        && get(/databases/$(database)/documents/vendedores/$(request.auth.uid)).data.propietarioId == request.auth.uid;
+    }
+    function validProduct(data) {
+      return data.keys().hasAll(['vendedorId', 'nombre', 'descripcion', 'categoria', 'presentacion', 'cantidadMinimaPedido', 'cantidadDisponible', 'precioUnitarioCentavos', 'moneda', 'estado', 'rutasImagenes', 'creadoEn', 'actualizadoEn'])
+        && data.keys().hasOnly(['vendedorId', 'nombre', 'descripcion', 'categoria', 'presentacion', 'cantidadMinimaPedido', 'cantidadDisponible', 'precioUnitarioCentavos', 'moneda', 'estado', 'rutasImagenes', 'creadoEn', 'actualizadoEn'])
+        && data.vendedorId == request.auth.uid
+        && data.nombre is string && data.nombre.size() > 0 && data.nombre.size() <= 120
+        && data.descripcion is string && data.descripcion.size() <= 2000
+        && data.categoria is string && data.categoria.size() > 0 && data.categoria.size() <= 60
+        && data.presentacion is string && data.presentacion.size() > 0 && data.presentacion.size() <= 120
+        && data.cantidadMinimaPedido is int && data.cantidadMinimaPedido >= 1 && data.cantidadMinimaPedido <= 1000000
+        && data.cantidadDisponible is int && data.cantidadDisponible >= 0 && data.cantidadDisponible <= 1000000
+        && data.precioUnitarioCentavos is int && data.precioUnitarioCentavos > 0 && data.precioUnitarioCentavos <= 999999999
+        && data.moneda == 'MXN'
+        && data.estado in ['borrador', 'publicado', 'pausado']
+        && data.rutasImagenes is list
+        && data.creadoEn is timestamp && data.actualizadoEn == request.time;
+    }
+    match /usuarios/{uid} {
+      allow create: if isOwner(uid) && request.resource.data.correo == request.auth.token.email;
+      allow read: if isOwner(uid);
+      allow update: if isOwner(uid) && request.resource.data.correo == resource.data.correo && request.resource.data.creadoEn == resource.data.creadoEn;
       allow delete: if false;
     }
-
-    match /solicitudesVendedores/{userId} {
-      allow create: if isOwner(userId)
-        && request.resource.data.propietarioId == request.auth.uid
-        && request.resource.data.estado == "pendiente";
-      allow read: if isOwner(userId);
+    match /solicitudesVendedores/{uid} {
+      allow create: if isOwner(uid) && request.resource.data.propietarioId == request.auth.uid && request.resource.data.estado == 'pendiente';
+      allow read: if isOwner(uid);
       allow update, delete: if false;
     }
-
-    // Perfil público del negocio: lo consulta cualquier cuenta autenticada.
-    match /vendedores/{vendedorId} {
+    match /vendedores/{uid} {
       allow read: if request.auth != null;
       allow write: if false;
     }
-
-    // Las consultas del catálogo deben filtrar por estado == "publicado".
-    match /productos/{productoId} {
-      allow read: if request.auth != null
-        && resource.data.estado == "publicado";
+    match /productos/{id} {
+      allow read: if request.auth != null && (resource.data.estado == 'publicado' || resource.data.vendedorId == request.auth.uid);
+      allow create: if activeSeller() && validProduct(request.resource.data)
+        && request.resource.data.creadoEn == request.time && request.resource.data.rutasImagenes.size() == 0;
+      allow update: if activeSeller() && resource.data.vendedorId == request.auth.uid && validProduct(request.resource.data)
+        && request.resource.data.creadoEn == resource.data.creadoEn
+        && request.resource.data.rutasImagenes == resource.data.rutasImagenes;
+      allow delete: if false;
+    }
+    match /cotizaciones/{id} {
+      allow read: if request.auth != null && (resource.data.compradorId == request.auth.uid || resource.data.vendedorId == request.auth.uid);
       allow write: if false;
     }
-
-    // El comprador consulta solo sus cotizaciones y pedidos (filtrando por compradorId).
-    match /cotizaciones/{cotizacionId} {
-      allow read: if request.auth != null
-        && resource.data.compradorId == request.auth.uid;
+    match /pedidos/{id} {
+      allow read: if request.auth != null && (resource.data.compradorId == request.auth.uid || resource.data.vendedorId == request.auth.uid);
       allow write: if false;
     }
-
-    match /pedidos/{pedidoId} {
-      allow read: if request.auth != null
-        && resource.data.compradorId == request.auth.uid;
-      allow write: if false;
-    }
-
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
+    match /{document=**} { allow read, write: if false; }
   }
 }
