@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from "react";
 import type { Producto } from "../../../shared/domain/models";
 import { saveProduct, type ConId, type ProductoInput } from "../services/vendedor";
+import { ProductImages } from './ProductImages';
 
-export function ProductForm({ uid, producto, onClose }: { uid: string; producto: ConId<Producto> | null; onClose: () => void }) {
+export function ProductForm({ producto, onClose }: { producto: ConId<Producto> | null; onClose: () => void }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [initialStock] = useState(producto?.cantidadDisponible);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
@@ -21,8 +23,8 @@ export function ProductForm({ uid, producto, onClose }: { uid: string; producto:
       setError("Revisa los campos: usa un precio mayor a cero con hasta dos decimales y cantidades enteras válidas."); return;
     }
     setSaving(true); setError("");
-    try { await saveProduct(uid, input, producto?.id); onClose(); }
-    catch { setError("No se guardó el producto. Revisa tu conexión, la aprobación de tu cuenta y las reglas de Firebase."); }
+    try { await saveProduct(input, producto?.id, initialStock); onClose(); }
+    catch (caught) { setError(caught instanceof Error ? caught.message : 'No se guardó el producto.'); }
     finally { setSaving(false); }
   }
   return <section className="registration-card mb-4" aria-labelledby="product-form-title">
@@ -35,7 +37,7 @@ export function ProductForm({ uid, producto, onClose }: { uid: string; producto:
           <div className="col-md-6"><label className="form-label" htmlFor="nombre">Nombre</label><input id="nombre" name="nombre" className="form-control" required maxLength={120} defaultValue={producto?.nombre} /></div>
           <div className="col-md-6"><label className="form-label" htmlFor="categoria">Categoría</label><input id="categoria" name="categoria" className="form-control" required maxLength={60} placeholder="Frutas, verduras, cítricos…" defaultValue={producto?.categoria} /></div>
           <div className="col-12"><label className="form-label" htmlFor="descripcion">Descripción</label><textarea id="descripcion" name="descripcion" className="form-control" maxLength={2000} defaultValue={producto?.descripcion} /></div>
-          <div className="col-md-6"><label className="form-label" htmlFor="presentacion">Presentación</label><input id="presentacion" name="presentacion" className="form-control" required maxLength={120} placeholder="Caja de 20 kg" defaultValue={producto?.presentacion} /></div>
+          <div className="col-md-6"><label className="form-label" htmlFor="presentacion">Presentación</label><input id="presentacion" name="presentacion" className="form-control" required readOnly={!!producto} maxLength={120} placeholder="Caja de 20 kg" defaultValue={producto?.presentacion} />{producto && <small>Crea otro producto para ofrecer una presentación diferente.</small>}</div>
           <div className="col-md-6"><label className="form-label" htmlFor="precio">Precio por presentación (MXN)</label><input id="precio" name="precio" type="number" className="form-control" required min="0.01" max="9999999.99" step="0.01" defaultValue={producto ? (producto.precioUnitarioCentavos / 100).toFixed(2) : undefined} /></div>
           <div className="col-md-4"><label className="form-label" htmlFor="existencias">Presentaciones disponibles</label><input id="existencias" name="existencias" type="number" className="form-control" required min="0" max="1000000" step="1" defaultValue={producto?.cantidadDisponible ?? 0} /></div>
           <div className="col-md-4"><label className="form-label" htmlFor="minimo">Pedido mínimo</label><input id="minimo" name="minimo" type="number" className="form-control" required min="1" max="1000000" step="1" defaultValue={producto?.cantidadMinimaPedido ?? 1} /></div>
@@ -44,5 +46,6 @@ export function ProductForm({ uid, producto, onClose }: { uid: string; producto:
         <div className="d-flex gap-2 mt-4"><button className="btn btn-primary" type="submit">{saving ? "Guardando…" : "Guardar producto"}</button><button className="btn btn-outline-secondary" type="button" onClick={onClose}>Cancelar</button></div>
       </fieldset>
     </form>
+    {producto ? <ProductImages product={producto} /> : <p className="form-text">Guarda el producto y ábrelo para agregar URLs de imágenes.</p>}
   </section>;
 }

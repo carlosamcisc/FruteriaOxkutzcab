@@ -1,14 +1,33 @@
 ﻿import { collection, doc, onSnapshot, runTransaction, serverTimestamp } from "firebase/firestore";
 import { getFirestoreDb } from "../../../services/firestore";
+import { updateDoc, Timestamp } from 'firebase/firestore';
 import { collections, documentPaths } from "../../../shared/domain/paths";
 import type { PerfilVendedor, SolicitudVendedor } from "../../../shared/domain/models";
 
-export type SolicitudConId = SolicitudVendedor & { id: string };
+export type SolicitudConId = Omit<SolicitudVendedor, 'enviadoEn'> & { id: string; enviadoEn: Timestamp | null; datosInvalidos: boolean };
 export type VendedorConId = PerfilVendedor & { id: string };
+
+export async function setSellerStatus(uid: string, estado: PerfilVendedor['estado']) {
+  await updateDoc(doc(getFirestoreDb(), documentPaths.vendedor(uid)), { estado, actualizadoEn: serverTimestamp() });
+}
 
 export function observeApplications(next: (items: SolicitudConId[]) => void, error: (error: Error) => void) {
   return onSnapshot(collection(getFirestoreDb(), collections.solicitudesVendedores), snapshot => {
-    const items = snapshot.docs.map(item => ({ ...item.data() as SolicitudVendedor, id: item.id }));
+    const items: SolicitudConId[] = snapshot.docs.map(item => {
+      const data = item.data();
+      const string = (key: string) => typeof data[key] === 'string' ? data[key] as string : '';
+      const state = ['pendiente', 'aprobada', 'rechazada'].includes(data.estado) ? data.estado as SolicitudVendedor['estado'] : 'pendiente';
+      const validDate = data.enviadoEn instanceof Timestamp;
+      return {
+        id: item.id, propietarioId: string('propietarioId'), nombreNegocio: string('nombreNegocio'),
+        descripcion: string('descripcion'), telefonoContacto: string('telefonoContacto'), municipio: string('municipio'),
+        estado: state, enviadoEn: validDate ? data.enviadoEn as Timestamp : null,
+        revisadoEn: data.revisadoEn instanceof Timestamp ? data.revisadoEn : null,
+        revisadoPor: typeof data.revisadoPor === 'string' ? data.revisadoPor : null,
+        motivoRechazo: typeof data.motivoRechazo === 'string' ? data.motivoRechazo : null,
+        datosInvalidos: !validDate || !['propietarioId', 'nombreNegocio', 'descripcion', 'telefonoContacto', 'municipio'].every(key => typeof data[key] === 'string' && data[key].trim()) || !['pendiente', 'aprobada', 'rechazada'].includes(data.estado),
+      };
+    });
     items.sort((a, b) => (b.enviadoEn?.toMillis() ?? 0) - (a.enviadoEn?.toMillis() ?? 0));
     next(items);
   }, error);

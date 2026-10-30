@@ -4,6 +4,7 @@ import { useAuth } from "../../features/auth/hooks/useAuth";
 import { isAdministrator, logout } from "../../features/auth/services/authentication";
 import { observeApplications, observeSellers, type SolicitudConId, type VendedorConId } from "../../features/admin/services/administration";
 import { ApplicationReview } from "../../features/admin/components/ApplicationReview";
+import { setSellerStatus } from '../../features/admin/services/administration';
 import { BrandLogo } from "../../shared/components/BrandLogo";
 
 export function AdminPage() {
@@ -31,6 +32,7 @@ function AdminAccess({ user }: { user: User }) {
 }
 
 function AdminDashboard({ user }: { user: User }) {
+  const [savingSeller, setSavingSeller] = useState<string | null>(null);
   const [applications, setApplications] = useState<SolicitudConId[]>([]);
   const [sellers, setSellers] = useState<VendedorConId[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,14 +66,26 @@ function AdminDashboard({ user }: { user: User }) {
         {[["pendiente", "Pendientes", "bi-hourglass-split"], ["aprobada", "Aprobadas", "bi-check-circle"], ["rechazada", "Rechazadas", "bi-x-circle"]].map(([state, label, icon]) => <div className="client-stat" key={state}><i className={`bi ${icon}`} aria-hidden="true" /><strong>{loading || error ? "—" : applications.filter(item => item.estado === state).length}</strong><small>{label}</small></div>)}
       </div></div></section>
       <div className="container py-4">
+        <section className="activity-card mb-4"><h2>Negocios registrados</h2>
+          {sellers.map(seller => <div key={seller.id} className="d-flex flex-wrap align-items-center justify-content-between gap-2 border-bottom py-2">
+            <span>{seller.nombreNegocio} · {seller.estado}</span>
+            <button className="btn btn-outline-warning btn-sm" disabled={savingSeller !== null} onClick={async () => {
+              setSavingSeller(seller.id); setError(''); setSuccess('');
+              try { await setSellerStatus(seller.id, seller.estado === 'activo' ? 'suspendido' : 'activo'); setSuccess('Estado del negocio actualizado.'); }
+              catch { setError('No se pudo cambiar el estado del negocio.'); }
+              finally { setSavingSeller(null); }
+            }}>{seller.estado === 'activo' ? 'Suspender' : 'Reactivar'}</button>
+          </div>)}
+        </section>
         {error && <div className="alert alert-danger" role="alert">{error} <button className="btn btn-sm btn-outline-danger" onClick={() => setAttempt(value => value + 1)}>Reintentar</button></div>}
         {success && <div className="alert alert-success" role="status">{success}</div>}
         {!loading && !error && selected && <ApplicationReview key={selected.id} application={selected} adminUid={user.uid} onClose={() => setSelected(null)} onSaved={() => { setSelected(null); setSuccess("Revisión guardada correctamente."); }} />}
         <div className="client-section-heading"><h2>Revisión de solicitudes</h2><input type="search" className="form-control seller-search" aria-label="Buscar solicitudes" placeholder="Buscar negocio, municipio o UID" value={search} onChange={event => setSearch(event.target.value)} /></div>
         <div className="category-chips" role="group" aria-label="Estado de solicitud">{[["pendiente", "Pendientes"], ["aprobada", "Aprobadas"], ["rechazada", "Rechazadas"], ["todas", "Todas"]].map(([value, label]) => <button key={value} className={filter === value ? "active" : ""} aria-pressed={filter === value} onClick={() => setFilter(value)}>{label}</button>)}</div>
         {loading ? <p role="status">Cargando solicitudes…</p> : error ? null : filtered.length === 0 ? <div className="catalog-empty"><i className="bi bi-inbox fs-1" aria-hidden="true" /><h3>No hay solicitudes en esta vista</h3><p>Cambia los filtros o espera a que se registren nuevos vendedores.</p></div> : <div className="row g-4">{filtered.map(item => <div className="col-lg-6" key={item.id}><article className="activity-card"><div className="d-flex flex-wrap justify-content-between gap-2"><h3>{item.nombreNegocio}</h3><span className={`status-pill status-${item.estado === "aprobada" ? "success" : item.estado === "rechazada" ? "danger" : "warning"}`}>{item.estado}</span></div><p className="text-secondary">{item.descripcion || "Sin descripción"}</p><dl className="admin-details"><dt>Municipio</dt><dd>{item.municipio}</dd><dt>Contacto</dt><dd>{item.telefonoContacto}</dd><dt>UID del solicitante</dt><dd>{item.propietarioId}</dd><dt>Fecha de solicitud</dt><dd>{item.enviadoEn?.toDate().toLocaleString("es-MX") ?? "Sin fecha"}</dd>{item.revisadoEn && <><dt>Revisada</dt><dd>{item.revisadoEn.toDate().toLocaleString("es-MX")}</dd><dt>Administrador</dt><dd>{item.revisadoPor ?? "Sin registro"}</dd></>}{item.motivoRechazo && <><dt>Motivo del rechazo</dt><dd>{item.motivoRechazo}</dd></>}</dl>
+          {item.datosInvalidos && <p className="alert alert-warning">Esta solicitud antigua tiene datos incompletos. Revisa su documento antes de aprobarla.</p>}
           {item.estado === "aprobada" && !sellerIds.has(item.id) && <p className="alert alert-warning">Esta solicitud está aprobada, pero falta habilitar el perfil del negocio.</p>}
-          {!sellerIds.has(item.id) && (item.estado === "pendiente" || item.estado === "aprobada") && <button className="btn btn-outline-success" onClick={() => { setSelected(item); setSuccess(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}>{item.estado === "aprobada" ? "Completar habilitación" : "Revisar solicitud"}</button>}
+          {!item.datosInvalidos && !sellerIds.has(item.id) && (item.estado === "pendiente" || item.estado === "aprobada") && <button className="btn btn-outline-success" onClick={() => { setSelected(item); setSuccess(""); window.scrollTo({ top: 0, behavior: "smooth" }); }}>{item.estado === "aprobada" ? "Completar habilitación" : "Revisar solicitud"}</button>}
           {sellerIds.has(item.id) && <p className="mb-0 text-secondary">El negocio ya tiene un perfil registrado.</p>}
         </article></div>)}</div>}
       </div>

@@ -25,7 +25,7 @@ export function useVendedor(uid: string) {
 
   const hasProfile = perfil !== null;
   useEffect(() => {
-    if (!hasProfile) return;
+    if (!hasProfile) { setProductos([]); setCotizaciones([]); setPedidos([]); setActivityLoading(false); return; }
     setActivityLoading(true);
     const pending = new Set(["productos", "cotizaciones", "pedidos"]);
     const done = (name: string) => { pending.delete(name); setActivityLoading(pending.size > 0); };

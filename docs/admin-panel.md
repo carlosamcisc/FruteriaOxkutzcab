@@ -39,7 +39,10 @@ la fecha y el historial de revisión. No expone los perfiles privados de usuario
   aprobada manualmente. Registra una nueva revisión administrativa.
 
 Una solicitud rechazada no se puede aprobar en este flujo. Un perfil existente
-no se sobrescribe ni se reactiva, incluso si está suspendido. Dos revisiones
+no se sobrescribe durante la aprobación. El solicitante puede corregir y reenviar
+una solicitud rechazada para que vuelva a revisión. **Negocios registrados**
+permite suspender y reactivar perfiles mediante una operación independiente,
+que solo cambia el estado y la fecha de actualización. Dos revisiones
 simultáneas se resuelven mediante la transacción: la segunda no pisa la primera.
 Las reglas exigen que aprobación y creación de perfil ocurran juntas, preservan
 los datos originales del negocio y prohíben que los usuarios se autoaprueben.

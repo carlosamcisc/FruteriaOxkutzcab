@@ -5,21 +5,21 @@ múltiples compradores. El pago se realizará en efectivo directamente al
 vendedor; la plataforma registrará el estado del pedido, pero no procesará
 pagos.
 
-## Arquitectura inicial
+Consulta los [flujos actuales por rol, pruebas y publicación](docs/flujos-roles.md).
+
+## Arquitectura
 
 - **React + TypeScript:** interfaz y módulos de la aplicación.
 - **Vite:** servidor de desarrollo y compilación de archivos estáticos.
 - **Bootstrap 5:** estilos y componentes adaptables.
-- **Firebase:** Authentication para cuentas, Firestore para datos, Storage para
-  imágenes y Hosting para publicar la aplicación.
-- **Cloud Functions:** se evaluarán para operaciones que deban ejecutarse de
-  forma confiable, como confirmar pedidos y actualizar inventario.
+- **Firebase Spark:** Authentication para cuentas, Firestore para datos y Hosting
+  para publicar la aplicación. Las imágenes se muestran mediante URLs externas.
 
-La interfaz no debe ser la autoridad para roles, precios, totales ni
-existencias. Firestore permite ahora que una cuenta autenticada cree y lea su
-propio perfil y, para vendedores, su solicitud pendiente. El resto de
-colecciones y Storage continúan protegidos hasta implementar sus flujos y
-reglas específicas.
+La interfaz no es la autoridad para roles, precios, totales ni existencias.
+Firestore valida perfiles y solicitudes por propietario, y las operaciones
+administrativas por custom claim. Las transacciones del SDK escriben los datos
+comerciales y las reglas verifican precios, totales, estados y cambios de
+inventario con `getAfter()`. No se utilizan Cloud Functions ni Firebase Storage.
 La configuración web de Firebase no sustituye esas reglas ni debe tratarse
 como autorización.
 
@@ -31,7 +31,7 @@ src/
   pages/                páginas completas; solo componen layouts y features
     publico/            BienvenidaPage
     autenticacion/      InicioSesion, SeleccionRol, RegistroCliente, RegistroVendedor
-    cliente/ vendedor/  páginas de inicio por rol (pendientes)
+    cliente/ vendedor/  paneles por rol
   features/             funcionalidades por dominio
     auth/
       context/          AuthProvider: única suscripción al estado de sesión
@@ -57,7 +57,7 @@ duplicados fuera de la aplicación React.
 
 ## Requisitos
 
-- Node.js 20.19+ o 22.12+.
+- Node.js 22.18+ para compilación y pruebas con los servicios TypeScript.
 - npm, incluido con Node.js.
 - Firebase CLI para autenticación, emuladores y despliegue.
 - Acceso al proyecto Firebase `fruteria-oxkutzcab`.
@@ -130,7 +130,7 @@ que estás en el repositorio y proyecto correctos.
 
 ## Emuladores de Firebase
 
-`firebase.json` configura emuladores para Authentication, Firestore, Storage,
+`firebase.json` configura emuladores para Authentication, Firestore,
 Hosting y la interfaz de administración local. Para iniciar los servicios:
 
 ```powershell
@@ -140,7 +140,7 @@ firebase emulators:start
 Para iniciar solo los servicios necesarios:
 
 ```powershell
-firebase emulators:start --only auth,firestore,storage
+firebase emulators:start --only auth,firestore
 ```
 
 Direcciones configuradas:
@@ -149,14 +149,13 @@ Direcciones configuradas:
 | --- | --- |
 | Authentication | `http://localhost:9099` |
 | Firestore | `http://localhost:8080` |
-| Storage | `http://localhost:9199` |
 | Hosting | `http://localhost:5000` |
 | Firebase Emulator UI | `http://localhost:4000` |
 
-Los emuladores deben usarse antes de probar reglas con datos de desarrollo.
-Firestore permite únicamente los documentos propios de `usuarios` y
-`solicitudesVendedores` para cuentas autenticadas. Las demás colecciones y
-Storage continúan denegando todo acceso hasta implementar sus reglas por rol.
+Para conectar la interfaz a los emuladores configura `VITE_USE_EMULATORS=true`.
+Consulta la configuración demo y las pruebas en [flujos por rol](docs/flujos-roles.md).
+Las pruebas requieren Java 21 o superior. Iniciar los emuladores por sí solo no
+cambia la conexión de la interfaz: activa la variable antes de arrancar Vite.
 
 Después de cambiar `firestore.rules`, publica las reglas en el proyecto
 Firebase activo antes de probar el registro:
@@ -188,14 +187,14 @@ Las reglas e índices se pueden publicar sin desplegar la interfaz:
 firebase deploy --only firestore:rules,firestore:indexes
 ```
 
-Para compilar y publicar la interfaz en Firebase Hosting:
+Después de publicar las reglas indicadas en [flujos por rol](docs/flujos-roles.md), puedes actualizar solo la interfaz:
 
 ```powershell
 npm run build
 firebase deploy --only hosting
 ```
 
-Para publicar reglas, índices y Hosting en una sola operación:
+Para publicar reglas, índices y Hosting en una sola operación, conservando Spark:
 
 ```powershell
 npm run build

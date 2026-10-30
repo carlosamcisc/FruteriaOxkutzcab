@@ -14,7 +14,7 @@ sirven como contrato de la aplicación; no sustituyen las reglas de seguridad.
 | `vendedores` | UID del vendedor | Perfil público del negocio y estado de habilitación. La creación, aprobación y suspensión son operaciones administrativas confiables. |
 | `productos` | ID generado por Firestore | Catálogo. Cada producto identifica al vendedor propietario. Se publican productos de vendedores aprobados. |
 | `cotizaciones` | ID generado por Firestore | Solicitud y respuesta de cotización. Cada documento corresponde a un comprador y a un solo vendedor. |
-| `pedidos` | ID generado por Firestore | Pedido confirmado, con copia inmutable de los productos, cantidades y precios acordados. Cada pedido corresponde a un vendedor. |
+| `pedidos` | ID de la cotización | Pedido confirmado, con copia inmutable de los productos, cantidades y precios acordados. Cada pedido corresponde a un vendedor. |
 | `movimientosInventario` | ID generado por Firestore | Historial de entradas, salidas y ajustes. Debe ser de solo anexado y escrito por operaciones confiables. |
 
 ## Reglas del dominio
@@ -25,29 +25,28 @@ sirven como contrato de la aplicación; no sustituyen las reglas de seguridad.
 - Un administrador revisa `solicitudesVendedores`. Al aprobar, una operación
   confiable crea `vendedores/{uid}`. La suspensión del perfil impide seguir
   operando como vendedor.
-- El catálogo puede incluir distintos vendedores. Cada cotización y pedido
-  pertenece a uno solo; un carrito con productos de varios vendedores se divide
-  en solicitudes independientes.
-- Los precios se guardan como enteros en centavos de MXN (`unitPriceMinor`),
+- El catálogo incluye varios vendedores. La interfaz crea una cotización y un
+  pedido por producto; cada pedido conserva un único vendedor.
+- Los precios se guardan como enteros en centavos de MXN (`precioUnitarioCentavos`),
   nunca como números de punto flotante. Las cantidades son unidades de venta
   enteras y los importes del pedido se vuelven a calcular de forma confiable.
 - La cotización conserva el precio solicitado y el cotizado. El pedido conserva
   una copia del nombre, presentación, cantidad y precio aceptados para que
   cambios futuros del producto no alteren el historial.
-- El pago se realiza en efectivo al vendedor. `cashPaymentStatus` registra que
+- El pago se realiza en efectivo al vendedor. `estadoPagoEfectivo` registra que
   el vendedor declara haber recibido el efectivo; la plataforma no procesa ni
   verifica físicamente el pago.
-- La existencia publicada no es una reserva. La confirmación del pedido y el
-  ajuste de existencias deben hacerse en una transacción confiable; no se debe
-  descontar inventario directamente desde el navegador.
+- La aceptación reserva existencias y crea el pedido en una transacción del SDK
+  validada por reglas. Las cancelaciones permitidas devuelven la reserva una vez.
 
 ## Operaciones confiables
 
-El cliente no debe decidir roles, aprobar vendedores, cambiar propietarios,
-aceptar cotizaciones en nombre de otra parte, fijar el total de un pedido,
-marcar movimientos de inventario ni descontar existencias. Estas operaciones
-requieren Cloud Functions con Firebase Admin SDK u otro entorno confiable. El
-uso de Functions no implica mantener un servidor propio.
+Las reglas son la autoridad para roles, propietarios, precios, totales y estados.
+La interfaz propone transacciones; Firestore valida el estado anterior y posterior
+mediante `get()` y `getAfter()`. Cada reserva y devolución exige simultáneamente
+el pedido y el movimiento correspondiente. Los movimientos son inmutables y
+`productos.ultimoMovimientoId` enlaza el ajuste que produjo las existencias actuales.
+El proyecto funciona en Spark sin desplegar Cloud Functions ni utilizar Storage.
 
 ## Índices
 
@@ -62,25 +61,14 @@ consultas reales de la interfaz.
 
 ## Seguridad y despliegue
 
-Las reglas actuales de Firestore permiten a una cuenta autenticada crear y
-consultar únicamente su documento `usuarios/{uid}` y su solicitud
-`solicitudesVendedores/{uid}`. Para la pantalla de inicio del cliente
-(`#cliente-inicio`), una cuenta autenticada además puede leer `vendedores`,
-los `productos` con `estado == "publicado"` y las `cotizaciones` y `pedidos`
-cuyo `compradorId` es su UID; las consultas deben incluir esos filtros. Ninguna
-de estas colecciones admite escrituras desde el navegador. El resto de las
-colecciones y Storage deniegan todo acceso hasta implementar sus flujos, reglas
-por rol/propietario y pruebas con Firebase Emulator Suite. El formulario de registro usa Authentication con
-correo y contraseña; el vendedor queda en estado `pendiente` y no recibe
-privilegios desde el navegador.
+Las reglas validan perfiles, solicitudes y revisión administrativa. Los datos
+comerciales se escriben mediante transacciones autenticadas validadas por reglas;
+los participantes consultan sus pedidos y cotizaciones. `rutasImagenes` conserva
+su nombre por compatibilidad y contiene hasta cinco URLs HTTPS externas. No se
+cargan archivos y no se requiere configurar un bucket.
 
-No se ha asociado este repositorio a un proyecto Firebase, porque todavía no se
-proporcionó un ID de proyecto. Cuando exista el proyecto y se hayan probado las
-reglas, se pueden publicar únicamente las reglas e índices con:
-
-```sh
-firebase deploy --only firestore:rules,firestore:indexes --project <project-id>
-```
+El proyecto está vinculado a `fruteria-oxkutzcab`. Consulta [flujos por rol](flujos-roles.md)
+para los permisos actuales, pruebas con proyecto demo y publicación completa.
 
 ## Migración del esquema anterior
 
@@ -106,18 +94,17 @@ Los vendedores activos pueden crear y editar sus productos (precio en centavos
 MXN, presentación, mínimo de compra, existencia publicada y visibilidad).
 Los cambios se guardan en Firestore y se reciben en tiempo real, sin datos de
 muestra. Pausar un producto permite retirarlo del catálogo sin borrar su historial.
-La existencia publicada es una declaración del vendedor, no una reserva ni un
-movimiento de inventario asociado a pedidos.
-
-Las cotizaciones y los pedidos se consultan filtrando por `vendedorId`; el panel
-no modifica sus estados ni descuenta inventario. Esas operaciones siguen
-reservadas al servidor. No se incluyen imágenes nuevas en este flujo.
+La aceptación de cotizaciones reserva inventario. Los ajustes, reservas y
+devoluciones quedan registrados en `movimientosInventario`. El panel permite
+responder cotizaciones, avanzar pedidos, registrar efectivo tras entregar y
+administrar fotografías. Consulta [el flujo comercial](flujos-roles.md).
 
 Una solicitud pendiente no concede acceso al catálogo del vendedor. La aprobación
 requiere que un administrador cree `vendedores/{uid}` con el esquema de
 `PerfilVendedor`, `propietarioId` igual al UID y `estado: "activo"`. El navegador
-no puede aprobar solicitudes ni crear ese perfil. Una cuenta suspendida puede
-consultar sus datos, pero no modificar productos.
+del solicitante no puede aprobar solicitudes ni crear ese perfil. Una cuenta suspendida puede
+consultar sus datos y terminar pedidos existentes; no puede modificar productos
+ni recibir nuevas compras.
 
 Para usar el panel contra Firebase real, deben estar publicadas las reglas de
 este cambio. Antes del despliegue, verificar en emuladores que un vendedor activo

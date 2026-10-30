@@ -8,7 +8,7 @@ import type {
   Producto,
 } from "../../../shared/domain/models";
 import {
-  getSellers,
+  observeSeller,
   getUserProfile,
   observeBuyerOrders,
   observeBuyerQuotes,
@@ -51,12 +51,14 @@ export function useClienteInicio(uid: string) {
   const [cotizaciones, setCotizaciones] = useState<ConId<Cotizacion>[] | null>(null);
   const [pedidos, setPedidos] = useState<ConId<Pedido>[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const requestedSellers = useRef(new Set<string>());
+  const generation = useRef(0);
 
   useEffect(() => {
-    const handleError = (caughtError: unknown) => setError(mapLoadError(caughtError));
+    const current = ++generation.current;
+    setPerfil(null); setProductos(null); setVendedores({}); setCotizaciones(null); setPedidos(null); setError(null);
+    const handleError = (caughtError: unknown) => { if (generation.current === current) setError(mapLoadError(caughtError)); };
 
-    getUserProfile(uid).then(setPerfil).catch(handleError);
+    getUserProfile(uid).then(value => { if (generation.current === current) setPerfil(value); }).catch(handleError);
     const unsubscribers = [
       observePublishedProducts(setProductos, (caughtError) => {
         setProductos([]);
@@ -71,30 +73,17 @@ export function useClienteInicio(uid: string) {
         handleError(caughtError);
       }),
     ];
-    return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+    return () => { generation.current++; unsubscribers.forEach((unsubscribe) => unsubscribe()); };
   }, [uid]);
 
-  // Solo se consultan los perfiles de vendedor que aún no se han pedido.
+  const sellerIds = JSON.stringify([...new Set((productos ?? []).map(producto => producto.vendedorId))].sort());
   useEffect(() => {
-    if (!productos) {
-      return;
-    }
-    const missing = [...new Set(productos.map((producto) => producto.vendedorId))].filter(
-      (sellerId) => !requestedSellers.current.has(sellerId),
-    );
-    if (missing.length === 0) {
-      return;
-    }
-    missing.forEach((sellerId) => requestedSellers.current.add(sellerId));
-    getSellers(missing)
-      .then((loaded) => setVendedores((current) => ({ ...current, ...loaded })))
-      .catch((caughtError) => {
-        // Se marcan como no disponibles para que el catálogo deje de mostrarse como cargando.
-        const unavailable = Object.fromEntries(missing.map((sellerId) => [sellerId, null]));
-        setVendedores((current) => ({ ...current, ...unavailable }));
-        setError(mapLoadError(caughtError));
-      });
-  }, [productos]);
+    const ids = JSON.parse(sellerIds) as string[];
+    const unsubscribers = ids.map(sellerId => observeSeller(sellerId,
+      value => setVendedores(current => ({ ...current, [sellerId]: value })),
+      caught => { setVendedores(current => ({ ...current, [sellerId]: null })); setError(mapLoadError(caught)); }));
+    return () => unsubscribers.forEach(unsubscribe => unsubscribe());
+  }, [sellerIds, uid]);
 
   const catalogo = useMemo<ProductoCatalogo[]>(() => {
     if (!productos) {
@@ -122,7 +111,7 @@ export function useClienteInicio(uid: string) {
     productosDisponibles: catalogo.length,
     vendedoresActivos: new Set(catalogo.map((producto) => producto.vendedorId)).size,
     cotizacionesActivas: cotizacionesRecientes.filter((cotizacion) =>
-      cotizacionesActivas.has(cotizacion.estado),
+      cotizacionesActivas.has(cotizacion.estado) && (!cotizacion.venceEn || cotizacion.venceEn.toMillis() > Date.now()),
     ).length,
     pedidosEnCurso: pedidosRecientes.filter((pedido) => pedidosEnCurso.has(pedido.estado)).length,
   };
