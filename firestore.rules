@@ -61,7 +61,11 @@ service cloud.firestore {
       let seller = get(/databases/$(database)/documents/vendedores/$(uid)).data;
       return seller.estado == 'activo' && seller.propietarioId == uid;
     }
-    function participant(data) { return request.auth != null && request.auth.uid in [data.compradorId, data.vendedorId]; }
+    // Explicit alternatives let Firestore prove access from either query filter.
+    function participant(data) {
+      return request.auth != null
+        && (data.compradorId == request.auth.uid || data.vendedorId == request.auth.uid);
+    }
     function note(value) { return value == null || (value is string && value.size() <= 1000); }
     function imageUrl(value) { return value is string && value.size() <= 2048 && value.matches('https://[A-Za-z0-9.-]+(:[0-9]+)?([/?#][^\\s]*)?'); }
     function images(values) {

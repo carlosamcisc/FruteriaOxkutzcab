@@ -149,3 +149,20 @@ test('catálogo consulta por vendedor activo y niega productos suspendidos al co
   await assertFails(getDoc(doc(buyer, 'productos/one')));
   await assertSucceeds(getDoc(doc(customer(), 'productos/one')));
 });
+
+test('comprador y vendedor pueden listar su actividad, incluso con colecciones vacías', async () => {
+  const buyer = environment.authenticatedContext('buyer').firestore();
+  for (const name of ['pedidos', 'cotizaciones']) {
+    const sellerQuery = query(collection(customer(), name), where('vendedorId', '==', uid));
+    const buyerQuery = query(collection(buyer, name), where('compradorId', '==', 'buyer'));
+    await assertSucceeds(getDocs(sellerQuery));
+    await assertSucceeds(getDocs(buyerQuery));
+    await seed(`${name}/own`, { vendedorId: uid, compradorId: 'buyer' });
+    await seed(`${name}/other`, { vendedorId: 'other-seller', compradorId: 'other-buyer' });
+    const sellerResult = await assertSucceeds(getDocs(sellerQuery));
+    const buyerResult = await assertSucceeds(getDocs(buyerQuery));
+    if (sellerResult.size !== 1 || buyerResult.size !== 1) throw new Error('La consulta debe devolver únicamente la actividad propia.');
+    await assertFails(getDocs(collection(customer(), name)));
+    await assertFails(getDocs(query(collection(customer(), name), where('vendedorId', '==', 'other-seller'))));
+  }
+});
