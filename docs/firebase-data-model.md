@@ -67,7 +67,7 @@ los participantes consultan sus pedidos y cotizaciones. `rutasImagenes` conserva
 su nombre por compatibilidad y contiene hasta cinco URLs HTTPS externas. No se
 cargan archivos y no se requiere configurar un bucket.
 
-El proyecto está vinculado a `fruteria-oxkutzcab`. Consulta [flujos por rol](flujos-roles.md)
+El proyecto está vinculado a `central-abastos-oxkutzcab`. Consulta [flujos por rol](flujos-roles.md)
 para los permisos actuales, pruebas con proyecto demo y publicación completa.
 
 ## Migración del esquema anterior
@@ -112,7 +112,7 @@ puede escribir solo sus productos, que clientes y cuentas suspendidas no pueden
 hacerlo, y que los pedidos y cotizaciones de otros usuarios permanecen privados.
 
 ```powershell
-firebase deploy --only firestore:rules --project fruteria-oxkutzcab
+firebase deploy --only firestore:rules --project central-abastos-oxkutzcab
 ```
 
 ## Revisión desde el panel de administración
