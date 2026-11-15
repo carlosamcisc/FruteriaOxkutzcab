@@ -118,8 +118,8 @@ script exige que no haya pedidos antiguos en curso ni movimientos sin enlace:
 
 ```powershell
 $env:GOOGLE_APPLICATION_CREDENTIALS = "C:\ruta\cuenta-servicio.json"
-npm.cmd run migrate:spark-inventory -- --project=fruteria-oxkutzcab
-npm.cmd run migrate:spark-inventory -- --project=fruteria-oxkutzcab --apply
+npm.cmd run migrate:spark-inventory -- --project=central-abastos-oxkutzcab
+npm.cmd run migrate:spark-inventory -- --project=central-abastos-oxkutzcab --apply
 ```
 
 La migración crea movimientos deterministas y enlaza cada producto sin cambiar
@@ -127,7 +127,7 @@ su precio, existencia o fecha de creación. Repetirla no duplica movimientos.
 
 ```powershell
 npm.cmd run build
-firebase deploy --only firestore:rules,firestore:indexes,hosting --project fruteria-oxkutzcab
+firebase deploy --only firestore:rules,firestore:indexes,hosting --project central-abastos-oxkutzcab
 ```
 
 Antes de publicar, revisa los documentos antiguos: las solicitudes deben cumplir

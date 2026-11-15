@@ -1,4 +1,4 @@
-﻿# Panel básico de administración
+# Panel básico de administración
 
 Ruta: `#admin-inicio`. Usa la misma sesión de Firebase Authentication que el resto
 de la aplicación. Los administradores llegan a esta ruta al iniciar sesión;
@@ -54,7 +54,7 @@ No se necesitan Cloud Functions para esta revisión administrativa.
 npm run build
 # Requiere Firebase CLI y Java 21 o posterior; usa un proyecto demo aislado.
 npm run test:rules
-firebase deploy --only firestore:rules --project fruteria-oxkutzcab
+firebase deploy --only firestore:rules --project central-abastos-oxkutzcab
 ```
 
 Las pruebas comprueban acceso privado, denegación de autoaprobación, escritura

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { cert, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 
@@ -8,7 +9,12 @@ if (!identity || !["grant", "revoke"].includes(action) || process.argv.length !=
 if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
   throw new Error("Define GOOGLE_APPLICATION_CREDENTIALS con la ruta de tu cuenta de servicio.");
 }
-const app = initializeApp({ credential: cert(process.env.GOOGLE_APPLICATION_CREDENTIALS), projectId: "fruteria-oxkutzcab" });
+const projectId = "central-abastos-oxkutzcab";
+const account = JSON.parse(readFileSync(process.env.GOOGLE_APPLICATION_CREDENTIALS, "utf8"));
+if (account.project_id !== projectId) {
+  throw new Error(`La cuenta de servicio debe pertenecer al proyecto ${projectId}.`);
+}
+const app = initializeApp({ credential: cert(account), projectId });
 const auth = getAuth(app);
 const user = identity.includes("@") ? await auth.getUserByEmail(identity) : await auth.getUser(identity);
 const uid = user.uid;

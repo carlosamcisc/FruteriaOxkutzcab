@@ -60,7 +60,7 @@ duplicados fuera de la aplicación React.
 - Node.js 22.18+ para compilación y pruebas con los servicios TypeScript.
 - npm, incluido con Node.js.
 - Firebase CLI para autenticación, emuladores y despliegue.
-- Acceso al proyecto Firebase `fruteria-oxkutzcab`.
+- Acceso al proyecto Firebase `central-abastos-oxkutzcab`.
 
 ## Comandos rápidos
 
@@ -100,7 +100,7 @@ Firebase. El archivo está excluido por `.gitignore` y nunca debe subirse al
 repositorio. No coloques claves privadas, tokens de servicio ni credenciales de
 Firebase Admin en variables `VITE_`.
 
-La configuración local actual apunta al proyecto `fruteria-oxkutzcab`. La
+La configuración local actual apunta al proyecto `central-abastos-oxkutzcab`. La
 aplicación inicializa Firebase Authentication al cargar la interfaz para
 restaurar una sesión existente; el resto de servicios se inicializa cuando se
 utiliza su funcionalidad.
@@ -125,7 +125,7 @@ firebase use
 firebase projects:list
 ```
 
-El proyecto activo debe ser `fruteria-oxkutzcab`. Antes de desplegar, confirma
+El proyecto activo debe ser `central-abastos-oxkutzcab`. Antes de desplegar, confirma
 que estás en el repositorio y proyecto correctos.
 
 ## Emuladores de Firebase
@@ -161,7 +161,7 @@ Después de cambiar `firestore.rules`, publica las reglas en el proyecto
 Firebase activo antes de probar el registro:
 
 ```powershell
-firebase deploy --only firestore:rules --project fruteria-oxkutzcab
+firebase deploy --only firestore:rules --project central-abastos-oxkutzcab
 ```
 
 También confirma en Firebase Console que Authentication tenga habilitado el
@@ -244,7 +244,7 @@ Firestore no requiere crear tablas por adelantado; los tipos en
 `src/shared/domain/models.ts` documentan la forma de los documentos. No hay
 que crear colecciones vacías manualmente: Firestore las crea al guardar el
 primer documento. El repositorio está vinculado al proyecto
-`fruteria-oxkutzcab`; aun así, las reglas deben validarse antes de habilitar
+`central-abastos-oxkutzcab`; aun así, las reglas deben validarse antes de habilitar
 datos reales.
 
 ## Flujo de ramas
