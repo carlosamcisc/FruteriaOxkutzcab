@@ -1,6 +1,7 @@
 {
   "projects": {
-    "fruteriaoxkutzcab": "fruteria-oxkutzcab"
+    "default": "central-abastos-oxkutzcab",
+    "fruteriaoxkutzcab": "central-abastos-oxkutzcab"
   },
   "targets": {},
   "etags": {}
